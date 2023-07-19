@@ -24,7 +24,9 @@ namespace Engine {
         application.init();
         while (!application.shouldClose()) {
             application.loop();
+
             vkHandler.drawFrame();
+
             glfwPollEvents();
         }
 

@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include "Vertex.h"
 
 namespace Engine {
     struct QueueFamilyIndices {
@@ -19,6 +20,12 @@ namespace Engine {
         std::vector<VkPresentModeKHR> presentModes;
     };
 
+    struct UniformBufferObject {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
                                           const VkAllocationCallbacks *pAllocator,
                                           VkDebugUtilsMessengerEXT *pDebugMessenger);
@@ -28,6 +35,8 @@ namespace Engine {
 
     class Vulkan {
     private:
+        Vertex *vertices;
+        uint16_t *indices;
         std::vector<const char *> validationLayers;
         std::vector<const char *> extensions;
         std::vector<const char *> deviceExtensions;
@@ -55,11 +64,13 @@ namespace Engine {
                                                             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                                             void *pUserData);
 
-        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-
         bool isDeviceSuitable(VkPhysicalDevice device);
 
         void pickPhysicalDevice();
+
+        void createVertexBuffer();
+
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
         void createLogicalDevice();
 
@@ -68,12 +79,6 @@ namespace Engine {
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
         void createSwapChain();
-
-        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-
-        static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
-
-        static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
 
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
@@ -99,12 +104,31 @@ namespace Engine {
 
         void cleanupSwapChain();
 
+        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
+        void
+        createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer,
+                     VkDeviceMemory &bufferMemory);
+
+        void createIndexBuffer();
+
+        void createDescriptorSetLayout();
+
+        void createUniformBuffers();
+
+        void updateUniformBuffer(uint32_t currentImage);
+
+        void createDescriptorPool();
+
+        void createDescriptorSets();
+
         VkInstance vkInstance;
         VkDebugUtilsMessengerEXT debugMessenger;
         VkSurfaceKHR surface;
         VkSwapchainKHR swapChain;
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
+        VkDescriptorSetLayout descriptorSetLayout;
         VkPipelineLayout pipelineLayout;
         VkRenderPass renderPass;
         VkPipeline graphicsPipeline;
@@ -113,6 +137,17 @@ namespace Engine {
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
+        VkDescriptorPool descriptorPool;
+        std::vector<VkDescriptorSet> descriptorSets;
+
+        std::vector<VkBuffer> uniformBuffers;
+        std::vector<VkDeviceMemory> uniformBuffersMemory;
+        std::vector<void *> uniformBuffersMapped;
+
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vertexBufferMemory;
+        VkBuffer indexBuffer;
+        VkDeviceMemory indexBufferMemory;
 
         VkQueue graphicsQueue;
         VkQueue presentQueue;
@@ -125,6 +160,9 @@ namespace Engine {
         explicit Vulkan(GLFWwindow *, bool = true);
 
         void addGLFWExtensions();
+
+        VkSurfaceFormatKHR surfaceFormat;
+        VkPresentModeKHR presentMode;
 
         [[nodiscard]] std::vector<const char *> &getValidationLayers();
 
@@ -141,5 +179,23 @@ namespace Engine {
         void cleanup();
 
         void init();
+
+        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+        static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+
+        static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+
+        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+
+        [[nodiscard]] VkRenderPass_T *getRenderPass() const;
+
+        [[nodiscard]] VkQueue_T *getGraphicsQueue() const;
+
+        [[nodiscard]] VkPhysicalDevice_T *getVkPhysicalDevice() const;
+
+        [[nodiscard]] VkDevice_T *getVkLogicalDevice() const;
+
+        [[nodiscard]] VkSurfaceKHR_T *getSurface() const;
     };
 }

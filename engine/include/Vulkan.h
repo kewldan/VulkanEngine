@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include "Mesh.h"
 
 namespace Engine {
     struct QueueFamilyIndices {
@@ -89,7 +90,7 @@ namespace Engine {
 
         void createCommandPool();
 
-        void createCommandBuffer();
+        void createCommandBuffers();
 
         void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
@@ -98,6 +99,18 @@ namespace Engine {
         void recreateSwapChain();
 
         void cleanupSwapChain();
+
+        void createVertexBuffer();
+
+        void createIndexBuffer();
+
+        void
+        createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer,
+                     VkDeviceMemory &bufferMemory);
+
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
         VkInstance vkInstance;
         VkDebugUtilsMessengerEXT debugMessenger;
@@ -114,6 +127,11 @@ namespace Engine {
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
 
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vertexBufferMemory;
+        VkBuffer indexBuffer;
+        VkDeviceMemory indexBufferMemory;
+
         VkQueue graphicsQueue;
         VkQueue presentQueue;
 
@@ -121,6 +139,8 @@ namespace Engine {
         VkDevice vkLogicalDevice = VK_NULL_HANDLE;
 
         GLFWwindow *window;
+
+        Mesh *rect;
     public:
         explicit Vulkan(GLFWwindow *, bool = true);
 

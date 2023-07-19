@@ -62,7 +62,7 @@ namespace Engine {
         };
 
         indices = new uint16_t[]{
-                1, 2, 3
+                0, 1, 2
         };
 
         vkInstance = {};
@@ -1125,26 +1125,6 @@ namespace Engine {
 
             vkUpdateDescriptorSets(vkLogicalDevice, 1, &descriptorWrite, 0, nullptr);
         }
-    }
-
-    VkRenderPass_T *Vulkan::getRenderPass() const {
-        return renderPass;
-    }
-
-    VkQueue_T *Vulkan::getGraphicsQueue() const {
-        return graphicsQueue;
-    }
-
-    VkPhysicalDevice_T *Vulkan::getVkPhysicalDevice() const {
-        return vkPhysicalDevice;
-    }
-
-    VkDevice_T *Vulkan::getVkLogicalDevice() const {
-        return vkLogicalDevice;
-    }
-
-    VkSurfaceKHR_T *Vulkan::getSurface() const {
-        return surface;
     }
 
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,

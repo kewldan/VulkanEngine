@@ -44,4 +44,4 @@ file(GLOB_RECURSE ENGINE_SRCS
 
 add_executable(VulkanEngine ${PROJECT_SRCS} ${ENGINE_SRCS})
 
-target_link_libraries(${PROJECT_NAME} glfw3 vulkan-1 zlib${_D} imgui${_D} freetype${_D} bz2${_D} libpng16${_D} brotlicommon-static brotlidec-static brotlienc-static)
+target_link_libraries(${PROJECT_NAME} glfw3 vulkan-1 zlib${_D})

@@ -13,6 +13,7 @@ namespace Engine {
         vkHandler.addGLFWExtensions();
         vkHandler.getExtensions().push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         vkHandler.getDeviceExtensions().push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        vkHandler.getDeviceExtensions().push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
 
         vkHandler.getValidationLayers().push_back("VK_LAYER_KHRONOS_validation");
 

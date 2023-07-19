@@ -20,6 +20,12 @@ namespace Engine {
         std::vector<VkPresentModeKHR> presentModes;
     };
 
+    struct UniformBufferObject {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
                                           const VkAllocationCallbacks *pAllocator,
                                           VkDebugUtilsMessengerEXT *pDebugMessenger);
@@ -104,6 +110,16 @@ namespace Engine {
 
         void createIndexBuffer();
 
+        void createDescriptorSetLayout();
+
+        void createDescriptorSets();
+
+        void createUniformBuffers();
+
+        void updateUniformBuffer(uint32_t currentImage);
+
+        void createDescriptorPool();
+
         void
         createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer,
                      VkDeviceMemory &bufferMemory);
@@ -119,6 +135,7 @@ namespace Engine {
         VkFormat swapChainImageFormat;
         VkExtent2D swapChainExtent;
         VkPipelineLayout pipelineLayout;
+        VkDescriptorSetLayout descriptorSetLayout;
         VkRenderPass renderPass;
         VkPipeline graphicsPipeline;
         VkCommandPool commandPool;
@@ -126,11 +143,17 @@ namespace Engine {
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
+        std::vector<VkDescriptorSet> descriptorSets;
 
         VkBuffer vertexBuffer;
         VkDeviceMemory vertexBufferMemory;
         VkBuffer indexBuffer;
         VkDeviceMemory indexBufferMemory;
+        std::vector<VkBuffer> uniformBuffers;
+        std::vector<VkDeviceMemory> uniformBuffersMemory;
+        std::vector<void *> uniformBuffersMapped;
+
+        VkDescriptorPool descriptorPool;
 
         VkQueue graphicsQueue;
         VkQueue presentQueue;

@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <GLFW/glfw3.h>
 #include "Mesh.h"
 
 namespace Engine {
@@ -37,7 +38,7 @@ namespace Engine {
     private:
         std::vector<const char *> validationLayers;
         std::vector<const char *> extensions;
-        std::vector<const char *> deviceExtensions;
+
         std::vector<VkImageView> swapChainImageViews;
         std::vector<VkFramebuffer> swapChainFramebuffers;
         int currentFrame = 0;
@@ -62,21 +63,9 @@ namespace Engine {
                                                             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                                             void *pUserData);
 
-        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-
-        bool isDeviceSuitable(VkPhysicalDevice device);
-
-        void pickPhysicalDevice();
-
-        void createLogicalDevice();
-
         void createSurface();
 
-        bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-
         void createSwapChain();
-
-        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
         static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
@@ -128,52 +117,53 @@ namespace Engine {
 
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-        VkInstance vkInstance;
-        VkDebugUtilsMessengerEXT debugMessenger;
-        VkSurfaceKHR surface;
-        VkSwapchainKHR swapChain;
+        VkInstance vkInstance{};
+        VkDebugUtilsMessengerEXT debugMessenger{};
+        VkSurfaceKHR surface{};
+        VkSwapchainKHR swapChain{};
         VkFormat swapChainImageFormat;
-        VkExtent2D swapChainExtent;
-        VkPipelineLayout pipelineLayout;
-        VkDescriptorSetLayout descriptorSetLayout;
-        VkRenderPass renderPass;
-        VkPipeline graphicsPipeline;
-        VkCommandPool commandPool;
+        VkExtent2D swapChainExtent{};
+        VkPipelineLayout pipelineLayout{};
+        VkDescriptorSetLayout descriptorSetLayout{};
+        VkRenderPass renderPass{};
+        VkPipeline graphicsPipeline{};
+        VkCommandPool commandPool{};
         std::vector<VkCommandBuffer> commandBuffers;
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
         std::vector<VkDescriptorSet> descriptorSets;
+        SwapChainSupportDetails swapChainSupport;
 
-        VkBuffer vertexBuffer;
-        VkDeviceMemory vertexBufferMemory;
-        VkBuffer indexBuffer;
-        VkDeviceMemory indexBufferMemory;
+        VkBuffer vertexBuffer{};
+        VkDeviceMemory vertexBufferMemory{};
+        VkBuffer indexBuffer{};
+        VkDeviceMemory indexBufferMemory{};
         std::vector<VkBuffer> uniformBuffers;
         std::vector<VkDeviceMemory> uniformBuffersMemory;
         std::vector<void *> uniformBuffersMapped;
 
-        VkDescriptorPool descriptorPool;
-
-        VkQueue graphicsQueue;
-        VkQueue presentQueue;
-
-        VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
-        VkDevice vkLogicalDevice = VK_NULL_HANDLE;
+        VkDescriptorPool descriptorPool{};
 
         GLFWwindow *window;
 
+        VkQueue graphicsQueue{};
+        VkQueue presentQueue{};
+
+        VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
+        VkDevice vkLogicalDevice = VK_NULL_HANDLE;
+        QueueFamilyIndices indices{};
+
+
         Mesh *rect;
     public:
-        explicit Vulkan(GLFWwindow *, bool = true);
+        explicit Vulkan(GLFWwindow *wind, bool validation = true);
 
         void addGLFWExtensions();
 
         [[nodiscard]] std::vector<const char *> &getValidationLayers();
 
         [[nodiscard]] std::vector<const char *> &getExtensions();
-
-        [[nodiscard]] std::vector<const char *> &getDeviceExtensions();
 
         VkInstance &getInstance();
 

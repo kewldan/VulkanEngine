@@ -3,33 +3,15 @@ project(VulkanEngine)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(VCPKG_LIBRARIES_PATH ${VCPKG_INSTALLED_DIR}/x64-windows-static)
-set(VCPKG_LIBRARIES_PATH_MD ${VCPKG_INSTALLED_DIR}/x64-windows-static-md)
-
-include_directories(
-        ${VCPKG_LIBRARIES_PATH}/include
-        ${VCPKG_LIBRARIES_PATH_MD}/include
-)
-
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    link_directories("${VCPKG_LIBRARIES_PATH}/lib")
-    link_directories("${VCPKG_LIBRARIES_PATH_MD}/lib")
-else ()
-    link_directories("${VCPKG_LIBRARIES_PATH}/debug/lib")
-    link_directories("${VCPKG_LIBRARIES_PATH_MD}/debug/lib")
-    set(_D d)
-    set(_DL _Debug)
-endif ()
-
+find_package(glfw3 CONFIG REQUIRED)
+find_package(plog CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
+find_package(ZLIB REQUIRED)
+find_path(VULKAN_HPP_INCLUDE_DIRS "vulkan/vulkan.hpp")
 
 include_directories(
         include
         engine/include
-        C:/VulkanSDK/1.3.250.1/Include
-)
-
-link_directories(
-        C:/VulkanSDK/1.3.250.1/Lib
 )
 
 file(GLOB_RECURSE PROJECT_SRCS
@@ -44,4 +26,5 @@ file(GLOB_RECURSE ENGINE_SRCS
 
 add_executable(VulkanEngine ${PROJECT_SRCS} ${ENGINE_SRCS})
 
-target_link_libraries(${PROJECT_NAME} glfw3 vulkan-1 zlib${_D})
+target_include_directories(${PROJECT_NAME} PRIVATE ${VULKAN_HPP_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw plog::plog Vulkan::Vulkan ZLIB::ZLIB)

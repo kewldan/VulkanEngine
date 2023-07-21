@@ -109,19 +109,11 @@ namespace Engine {
 
         void createDescriptorPool();
 
-        void
-        createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer,
-                     VkDeviceMemory &bufferMemory);
-
-        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-
         VkInstance vkInstance{};
         VkDebugUtilsMessengerEXT debugMessenger{};
         VkSurfaceKHR surface{};
         VkSwapchainKHR swapChain{};
-        VkFormat swapChainImageFormat;
+        VkFormat swapChainImageFormat{};
         VkExtent2D swapChainExtent{};
         VkPipelineLayout pipelineLayout{};
         VkDescriptorSetLayout descriptorSetLayout{};
@@ -142,19 +134,15 @@ namespace Engine {
         std::vector<VkBuffer> uniformBuffers;
         std::vector<VkDeviceMemory> uniformBuffersMemory;
         std::vector<void *> uniformBuffersMapped;
-
         VkDescriptorPool descriptorPool{};
-
-        GLFWwindow *window;
-
-        VkQueue graphicsQueue{};
-        VkQueue presentQueue{};
 
         VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
         VkDevice vkLogicalDevice = VK_NULL_HANDLE;
         QueueFamilyIndices indices{};
+        VkQueue graphicsQueue{};
+        VkQueue presentQueue{};
 
-
+        GLFWwindow *window;
         Mesh *rect;
     public:
         explicit Vulkan(GLFWwindow *wind, bool validation = true);

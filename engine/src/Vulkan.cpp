@@ -13,6 +13,8 @@
 #include "vulkan/DeviceHandler.h"
 #include "plog/Log.h"
 #include "vulkan/BufferHandler.h"
+#include "GUI.h"
+#include "io/Assets.h"
 
 namespace Engine {
     bool Vulkan::checkValidationLayers() {
@@ -58,14 +60,15 @@ namespace Engine {
     VkBool32 Vulkan::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
                                    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
-        const char* prefix = "";
-        if(messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT){
+        const char *prefix = "";
+        if (messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
             prefix = "[GEN]";
-        }else if(messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT){
+        } else if (messageType &
+                   VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT) {
             prefix = "[DEV]";
-        }else if(messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT){
+        } else if (messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
             prefix = "[PER]";
-        }else if(messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT){
+        } else if (messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
             prefix = "[VAL]";
         }
         if (messageSeverity & VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
@@ -131,6 +134,8 @@ namespace Engine {
 
     void Vulkan::cleanup() {
         cleanupSwapChain();
+
+        GUI::cleanup(vkLogicalDevice);
 
         vkDestroyPipeline(vkLogicalDevice, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(vkLogicalDevice, pipelineLayout, nullptr);
@@ -223,6 +228,9 @@ namespace Engine {
         createDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
+
+        GUI::init(window, vkInstance, vkPhysicalDevice, vkLogicalDevice, graphicsQueue, renderPass, commandPool,
+                  commandBuffers[0]);
     }
 
     void Vulkan::createSurface() {
@@ -286,7 +294,7 @@ namespace Engine {
     VkSurfaceFormatKHR Vulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
         for (const auto &availableFormat: availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
-                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                availableFormat.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT) {
                 return availableFormat;
             }
         }
@@ -355,12 +363,8 @@ namespace Engine {
     }
 
     void Vulkan::createGraphicsPipeline() {
-        size_t vertCodeLength, fragCodeLength;
-        auto vertShaderCode = Filesystem::readFile("vert.spv", &vertCodeLength);
-        auto fragShaderCode = Filesystem::readFile("frag.spv", &fragCodeLength);
-
-        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, vertCodeLength);
-        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, fragCodeLength);
+        VkShaderModule vertShaderModule = Assets::loadShader(vkLogicalDevice, "vert.spv");
+        VkShaderModule fragShaderModule = Assets::loadShader(vkLogicalDevice, "frag.spv");
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -471,20 +475,6 @@ namespace Engine {
 
         vkDestroyShaderModule(vkLogicalDevice, fragShaderModule, nullptr);
         vkDestroyShaderModule(vkLogicalDevice, vertShaderModule, nullptr);
-    }
-
-    VkShaderModule Vulkan::createShaderModule(const char *code, size_t length) {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = length;
-        createInfo.pCode = reinterpret_cast<const uint32_t *>(code);
-
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(vkLogicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create shader module!");
-        }
-
-        return shaderModule;
     }
 
     void Vulkan::createRenderPass() {
@@ -600,6 +590,8 @@ namespace Engine {
                                 &descriptorSets[currentFrame], 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, rect->indexCount, 1, 0, 0, 0);
 
+        GUI::render(commandBuffer);
+
         vkCmdEndRenderPass(commandBuffer);
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -645,6 +637,8 @@ namespace Engine {
         }
 
         updateUniformBuffer(currentFrame);
+
+        GUI::draw();
 
         vkResetFences(vkLogicalDevice, 1, &inFlightFences[currentFrame]);
 
@@ -838,7 +832,8 @@ namespace Engine {
         UniformBufferObject ubo{};
         ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), (float) swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
+        ubo.proj = glm::perspective(glm::radians(45.0f), (float) swapChainExtent.width / (float) swapChainExtent.height,
+                                    0.1f,
                                     10.0f);
         ubo.proj[1][1] *= -1;
 

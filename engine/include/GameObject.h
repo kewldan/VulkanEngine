@@ -9,7 +9,5 @@ namespace Engine {
         int meshCount{};
     public:
         GameObject();
-
-        void loadMeshes(const char *filename);
     };
 }

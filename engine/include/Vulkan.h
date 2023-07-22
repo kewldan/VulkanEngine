@@ -76,8 +76,6 @@ namespace Engine {
 
         void createGraphicsPipeline();
 
-        VkShaderModule createShaderModule(const char *code, size_t length);
-
         void createRenderPass();
 
         void createFramebuffers();

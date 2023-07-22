@@ -1,13 +1,15 @@
 #include <xutility>
-#include "../GUI.h"
+#include "GUI.h"
+#include "plog/Log.h"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
 namespace Engine {
 
-    void GUI::init(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, VkQueue graphicsQueue,
-                   VkRenderPass renderPass) {
+    void GUI::init(GLFWwindow *window, VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device,
+                   VkQueue graphicsQueue,
+                   VkRenderPass renderPass, VkCommandPool commandPool, VkCommandBuffer commandBuffer) {
         VkDescriptorPoolSize pool_sizes[] =
                 {
                         {VK_DESCRIPTOR_TYPE_SAMPLER,                1000},
@@ -30,18 +32,13 @@ namespace Engine {
         pool_info.poolSizeCount = std::size(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
 
-        VkDescriptorPool imguiPool;
+
         vkCreateDescriptorPool(device, &pool_info, nullptr, &imguiPool);
 
-
-        // 2: initialize imgui library
-
-        //this initializes the core structures of imgui
         ImGui::CreateContext();
 
-        ImGui_ImplGlfw_InitForVulkan(nullptr, true);
+        ImGui_ImplGlfw_InitForVulkan(window, true);
 
-        //this initializes imgui for Vulkan
         ImGui_ImplVulkan_InitInfo init_info = {};
         init_info.Instance = instance;
         init_info.PhysicalDevice = physicalDevice;
@@ -54,16 +51,28 @@ namespace Engine {
 
         ImGui_ImplVulkan_Init(&init_info, renderPass);
 
-        //add to destroy the imgui created structures
-//        _mainDeletionQueue.push_function([=]() {
-//
-//            vkDestroyDescriptorPool(_device, imguiPool, nullptr);
-//            ImGui_ImplVulkan_Shutdown();
-//        });
-    }
+        VkResult err = vkResetCommandPool(device, commandPool, 0);
+        PLOGF_IF(err != VK_SUCCESS) << err;
 
-    void GUI::uploadFonts(VkCommandBuffer buffer) {
-        ImGui_ImplVulkan_CreateFontsTexture(buffer);
+        VkCommandBufferBeginInfo begin_info = {};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        err = vkBeginCommandBuffer(commandBuffer, &begin_info);
+        PLOGF_IF(err != VK_SUCCESS) << err;
+
+        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+
+        VkSubmitInfo end_info = {};
+        end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        end_info.commandBufferCount = 1;
+        end_info.pCommandBuffers = &commandBuffer;
+        err = vkEndCommandBuffer(commandBuffer);
+        PLOGF_IF(err != VK_SUCCESS) << err;
+        err = vkQueueSubmit(graphicsQueue, 1, &end_info, VK_NULL_HANDLE);
+        PLOGF_IF(err != VK_SUCCESS) << err;
+
+        err = vkDeviceWaitIdle(device);
+        PLOGF_IF(err != VK_SUCCESS) << err;
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
@@ -81,4 +90,15 @@ namespace Engine {
     void GUI::render(VkCommandBuffer buffer) {
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), buffer);
     }
+
+    void GUI::cleanup(VkDevice device) {
+        vkDestroyDescriptorPool(device, imguiPool, nullptr);
+
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
+
+    VkDescriptorPool GUI::imguiPool = nullptr;
 }
+

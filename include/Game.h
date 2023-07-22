@@ -7,7 +7,7 @@
 #include "GameObject.h"
 #include <vector>
 
-struct UniformBufferObject {
+struct UniformBuffer {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
@@ -15,9 +15,9 @@ struct UniformBufferObject {
 
 class Game : public Engine::Application {
 private:
-    std::unique_ptr<Engine::GameObject> gameObject;
+    std::unique_ptr<Engine::GameObject> cubeGameObject, planeGameObject;
     VkPipeline graphicsPipeline{};
-    std::unique_ptr<Engine::UniformBuffer<UniformBufferObject>> uniformBuffer;
+    std::unique_ptr<Engine::UniformBuffer<UniformBuffer>> uniformBuffer;
     std::unique_ptr<Engine::Camera3D> camera;
 
     std::vector<VkDescriptorSet> descriptorSets;

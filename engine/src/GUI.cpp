@@ -1,6 +1,7 @@
 #include <xutility>
 #include "GUI.h"
 #include "plog/Log.h"
+#include "vulkan/DebugUtils.h"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -34,6 +35,8 @@ namespace Engine {
 
 
         vkCreateDescriptorPool(device, &pool_info, nullptr, &imguiPool);
+
+        DebugUtils::setObjectName(imguiPool, "ImGui descriptor pool");
 
         ImGui::CreateContext();
 

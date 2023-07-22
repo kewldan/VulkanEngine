@@ -1,5 +1,6 @@
 #include "Mesh.h"
 #include "vulkan/BufferHandler.h"
+#include "vulkan/DebugUtils.h"
 
 namespace Engine {
     Mesh::Mesh(Vertex *vertices, uint16_t *indices, int indexCount, int vertexCount) : vertices(vertices),
@@ -59,6 +60,11 @@ namespace Engine {
             vkDestroyBuffer(device, stagingBuffer, nullptr);
             vkFreeMemory(device, stagingBufferMemory, nullptr);
         }
+
+        DebugUtils::setObjectName(vertexBuffer, "Mesh vertex buffer");
+        DebugUtils::setObjectName(indexBuffer, "Mesh index buffer");
+        DebugUtils::setObjectName(vertexBufferMemory, "Mesh vertex buffer memory");
+        DebugUtils::setObjectName(indexBufferMemory, "Mesh index buffer memory");
     }
 
     void Mesh::cleanup(VkDevice device) const {

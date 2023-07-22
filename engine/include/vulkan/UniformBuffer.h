@@ -6,7 +6,7 @@
 
 namespace Engine {
     template<class T>
-    class UniformBuffer {
+    class UniformBuffer : public T {
     private:
         std::vector<VkDeviceMemory> uniformBuffersMemory;
         std::vector<void *> uniformBuffersMapped;
@@ -15,7 +15,7 @@ namespace Engine {
 
         UniformBuffer(VkPhysicalDevice physicalDevice, VkDevice device);
 
-        void upload(int currentFrame, T *data);
+        void upload(int currentFrame);
 
         void cleanup(VkDevice device);
     };
@@ -48,7 +48,7 @@ namespace Engine {
     }
 
     template<class T>
-    void UniformBuffer<T>::upload(int currentFrame, T *data) {
-        memcpy(uniformBuffersMapped[currentFrame], data, sizeof(T));
+    void UniformBuffer<T>::upload(int currentFrame) {
+        memcpy(uniformBuffersMapped[currentFrame], this, sizeof(T));
     }
 }

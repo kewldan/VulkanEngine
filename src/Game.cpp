@@ -1,6 +1,6 @@
 #include <vector>
 #include <stdexcept>
-#include <chrono>
+#include <algorithm>
 #include "Game.h"
 #include "imgui.h"
 #include "io/Assets.h"
@@ -10,13 +10,25 @@
 
 void Game::init() {
     Engine::InputManager::setRawInput(window->getHandle(), true);
+    Engine::InputManager::setLockCursor(window->getHandle(), true);
+    Engine::InputManager::registerCallbacks(window->getHandle());
 
-    gameObject = std::make_unique<Engine::GameObject>();
-    gameObject->meshes = Engine::Assets::loadMeshes("cube.obj", &gameObject->meshCount);
-    gameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
+    Engine::InputManager::keyPressListeners.emplace_back([=](int key) {
+        if (key == GLFW_KEY_ESCAPE) {
+            Engine::InputManager::setLockCursor(window->getHandle(), !Engine::InputManager::lockCursor);
+        }
+    });
 
-    uniformBuffer = std::make_unique<Engine::UniformBuffer<UniformBufferObject>>(context.physicalDevice,
-                                                                                 context.device);
+    cubeGameObject = std::make_unique<Engine::GameObject>();
+    cubeGameObject->meshes = Engine::Assets::loadMeshes("cube.obj", &cubeGameObject->meshCount);
+    cubeGameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
+
+    planeGameObject = std::make_unique<Engine::GameObject>();
+    planeGameObject->meshes = Engine::Assets::loadMeshes("plane.obj", &planeGameObject->meshCount);
+    planeGameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
+
+    uniformBuffer = std::make_unique<Engine::UniformBuffer<UniformBuffer>>(context.physicalDevice,
+                                                                           context.device);
 
     camera = std::make_unique<Engine::Camera3D>();
     camera->position = glm::vec3(2.f, 2.f, 2.f);
@@ -26,27 +38,50 @@ void Game::init() {
 }
 
 void Game::update() {
+    glm::vec2 delta = Engine::InputManager::getCursorDelta(window->getHandle());
+    camera->rotation.x += delta.y * 0.004f;
+    camera->rotation.y += delta.x * 0.004f;
+    camera->rotation.x = std::clamp(camera->rotation.x, -1.5f, 1.5f);
+
+    glm::vec3 vel(0.f);
+    float speed = 3.5f;
+    float crouch = ImGui::GetIO().DeltaTime;
+    if (glfwGetKey(window->getHandle(), GLFW_KEY_W)) {
+        vel.x -= std::cos(camera->rotation.y + 1.57f) * speed * crouch;
+        vel.y -= std::sin(camera->rotation.x + 1.57f) * speed * crouch;
+        vel.z -= std::sin(camera->rotation.y + 1.57f) * speed * crouch;
+    } else if (glfwGetKey(window->getHandle(), GLFW_KEY_S)) {
+        vel.x += std::cos(camera->rotation.y + 1.57f) * speed * crouch;
+        vel.y += std::sin(camera->rotation.x + 1.57f) * speed * crouch;
+        vel.z += std::sin(camera->rotation.y + 1.57f) * speed * crouch;
+    }
+
+    if (glfwGetKey(window->getHandle(), GLFW_KEY_A)) {
+        vel.x -= std::cos(camera->rotation.y) * speed * crouch;
+        vel.z -= std::sin(camera->rotation.y) * speed * crouch;
+    } else if (glfwGetKey(window->getHandle(), GLFW_KEY_D)) {
+        vel.x += std::cos(camera->rotation.y) * speed * crouch;
+        vel.z += std::sin(camera->rotation.y) * speed * crouch;
+    }
+    camera->position += vel;
+
     camera->update((float) context.swapChainExtent->width, (float) context.swapChainExtent->height);
 
-    static auto startTime = std::chrono::high_resolution_clock::now();
+    uniformBuffer->model = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime() * glm::radians(90.0f),
+                                       glm::vec3(0.0f, 0.0f, 1.0f));
+    uniformBuffer->view = camera->getView();
+    uniformBuffer->proj = camera->getProjection();
+    uniformBuffer->proj[1][1] *= -1;
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = camera->getProjection();
-    ubo.proj[1][1] *= -1;
-
-    uniformBuffer->upload(*context.currentFrame, &ubo);
+    uniformBuffer->upload(*context.currentFrame);
 }
 
 void Game::cleanup() {
     vkDestroyPipeline(context.device, graphicsPipeline, nullptr);
 
     uniformBuffer->cleanup(context.device);
-    gameObject->cleanup(context.device);
+    cubeGameObject->cleanup(context.device);
+    planeGameObject->cleanup(context.device);
     window->cleanup();
 }
 
@@ -71,19 +106,31 @@ void Game::render(VkCommandBuffer commandBuffer) {
     scissor.extent = *context.swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    for (int i = 0; i < gameObject->meshCount; i++) {
-        VkBuffer vertexBuffers[] = {gameObject->meshes[i].vertexBuffer};
+    for (int i = 0; i < cubeGameObject->meshCount; i++) {
+        VkBuffer vertexBuffers[] = {cubeGameObject->meshes[i].vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, gameObject->meshes[i].indexBuffer, 0,
+        vkCmdBindIndexBuffer(commandBuffer, cubeGameObject->meshes[i].indexBuffer, 0,
                              VK_INDEX_TYPE_UINT16);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 context.pipelineLayout, 0, 1,
                                 &descriptorSets[*context.currentFrame], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, gameObject->meshes[i].indexCount, 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, cubeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
     }
 
+    for (int i = 0; i < planeGameObject->meshCount; i++) {
+        VkBuffer vertexBuffers[] = {planeGameObject->meshes[i].vertexBuffer};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, planeGameObject->meshes[i].indexBuffer, 0,
+                             VK_INDEX_TYPE_UINT16);
+
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                context.pipelineLayout, 0, 1,
+                                &descriptorSets[*context.currentFrame], 0, nullptr);
+        vkCmdDrawIndexed(commandBuffer, planeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
+    }
 }
 
 void Game::gui() {
@@ -97,6 +144,8 @@ void Game::gui() {
                      ImGuiWindowFlags_NoFocusOnAppearing |
                      ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove)) {
         ImGui::Text("FPS: %.0f", ImGui::GetIO().Framerate);
+        ImGui::Text("Facing: %.2f %.2f", camera->rotation.x, camera->rotation.y);
+        ImGui::Text("Position: %.1f %.1f %.1f", camera->position.x, camera->position.y, camera->position.z);
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -222,10 +271,9 @@ void Game::createDescriptorSets() {
     }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffer->uniformBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
+        VkDescriptorBufferInfo bufferInfo[2] = {
+                {uniformBuffer->uniformBuffers[i], 0, sizeof(UniformBuffer)}
+        };
 
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -234,7 +282,7 @@ void Game::createDescriptorSets() {
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
+        descriptorWrite.pBufferInfo = bufferInfo;
 
         vkUpdateDescriptorSets(context.device, 1, &descriptorWrite, 0, nullptr);
     }

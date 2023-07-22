@@ -15,6 +15,7 @@
 #include "vulkan/BufferHandler.h"
 #include "GUI.h"
 #include "io/Assets.h"
+#include "vulkan/DebugUtils.h"
 
 namespace Engine {
     bool Vulkan::checkValidationLayers() {
@@ -191,6 +192,9 @@ namespace Engine {
                                   std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME},
                                   enableValidationLayers, validationLayers, &graphicsQueue, &presentQueue, surface);
 
+        DebugUtils::m_device = vkLogicalDevice;
+        DebugUtils::instance = vkInstance;
+
         createSwapChain();
         createImageViews();
         createRenderPass();
@@ -282,7 +286,7 @@ namespace Engine {
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D Vulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
+    VkExtent2D Vulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
         } else {
@@ -397,6 +401,8 @@ namespace Engine {
                 VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
+
+            DebugUtils::setObjectName(swapChainFramebuffers[i], "Swapchain framebuffer");
         }
     }
 

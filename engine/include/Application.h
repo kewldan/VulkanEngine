@@ -2,24 +2,29 @@
 
 #include <vulkan/vulkan.h>
 #include "Window.h"
+#include "VulkanContext.h"
 
 namespace Engine {
     class Application {
     protected:
-        VkInstance vkInstance{};
+        VulkanContext context{};
         Window *window{};
     public:
-        virtual void create(VkInstance &);
+        virtual void create(VulkanContext context);
 
-        virtual void createWindow();
+        virtual void createWindow() = 0;
 
         virtual Window *getWindow();
 
-        virtual void init();
+        virtual void init() = 0;
 
-        virtual void loop();
+        virtual void render(VkCommandBuffer commandBuffer, VkDescriptorSet *descriptorSet) = 0;
 
-        virtual void cleanup();
+        virtual void gui() = 0;
+
+        virtual void update() = 0;
+
+        virtual void cleanup() = 0;
 
         virtual bool shouldClose();
     };

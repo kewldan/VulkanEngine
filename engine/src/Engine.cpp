@@ -3,6 +3,7 @@
 #include "plog/Init.h"
 #include "plog/Formatters/FuncMessageFormatter.h"
 #include "plog/Appenders/ColorConsoleAppender.h"
+#include "GUI.h"
 
 namespace Engine {
     void Engine::run(Application &application) {
@@ -21,12 +22,33 @@ namespace Engine {
         vkHandler.init(std::vector<const char *>() = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
 
         VkInstance vkInstance = vkHandler.getInstance();
-        application.create(vkInstance);
+        application.create({
+                                   vkInstance,
+                                   vkHandler.vkPhysicalDevice,
+                                   vkHandler.vkLogicalDevice,
+                                   vkHandler.graphicsQueue,
+                                   vkHandler.presentQueue,
+                                   vkHandler.commandPool,
+                                   vkHandler.pipelineLayout
+                           });
 
         application.init();
         while (!application.shouldClose()) {
-            application.loop();
-            vkHandler.drawFrame();
+            application.update();
+
+            int currentFrame = vkHandler.syncNewFrame();
+
+            vkHandler.updateUniformBuffer(currentFrame);
+
+            application.render(vkHandler.commandBuffers[currentFrame], &vkHandler.descriptorSets[currentFrame]);
+
+            GUI::begin();
+            application.gui();
+            GUI::end();
+            GUI::render(vkHandler.commandBuffers[currentFrame]);
+
+            vkHandler.endFrame();
+
             glfwPollEvents();
         }
 

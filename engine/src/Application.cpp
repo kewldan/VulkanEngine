@@ -1,31 +1,15 @@
 #include "Application.h"
 
 namespace Engine {
-    void Application::create(VkInstance &instance) {
-        vkInstance = instance;
-    }
-
-    void Application::init() {
-
-    }
-
-    void Application::loop() {
-
-    }
-
-    void Application::cleanup() {
-
-    }
-
     bool Application::shouldClose() {
-        return false;
-    }
-
-    void Application::createWindow() {
-
+        return window->shouldClose();
     }
 
     Window *Application::getWindow() {
         return window;
+    }
+
+    void Application::create(VulkanContext context) {
+        this->context = context;
     }
 }

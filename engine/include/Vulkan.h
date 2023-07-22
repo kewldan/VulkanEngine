@@ -35,7 +35,7 @@ namespace Engine {
                                        const VkAllocationCallbacks *pAllocator);
 
     class Vulkan {
-    private:
+    public:
         std::vector<const char *> validationLayers;
 
         std::vector<VkImageView> swapChainImageViews;
@@ -84,25 +84,17 @@ namespace Engine {
 
         void createCommandBuffers();
 
-        void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
         void createSyncObjects();
 
         void recreateSwapChain();
 
         void cleanupSwapChain();
 
-        void createVertexBuffer();
-
-        void createIndexBuffer();
-
         void createDescriptorSetLayout();
 
         void createDescriptorSets();
 
         void createUniformBuffers();
-
-        void updateUniformBuffer(uint32_t currentImage);
 
         void createDescriptorPool();
 
@@ -124,10 +116,6 @@ namespace Engine {
         std::vector<VkDescriptorSet> descriptorSets;
         SwapChainSupportDetails swapChainSupport;
 
-        VkBuffer vertexBuffer{};
-        VkDeviceMemory vertexBufferMemory{};
-        VkBuffer indexBuffer{};
-        VkDeviceMemory indexBufferMemory{};
         std::vector<VkBuffer> uniformBuffers;
         std::vector<VkDeviceMemory> uniformBuffersMemory;
         std::vector<void *> uniformBuffersMapped;
@@ -139,8 +127,9 @@ namespace Engine {
         VkQueue graphicsQueue{};
         VkQueue presentQueue{};
 
+        uint32_t imageIndex;
+
         GLFWwindow *window;
-        Mesh *rect;
     public:
         explicit Vulkan(GLFWwindow *wind, bool validation = true);
 
@@ -148,11 +137,15 @@ namespace Engine {
 
         VkInstance &getInstance();
 
-        void drawFrame();
+        int syncNewFrame();
+
+        void endFrame();
 
         void idle();
 
         void cleanup();
+
+        void updateUniformBuffer(uint32_t currentImage);
 
         void init(std::vector<const char *> &extensions);
     };

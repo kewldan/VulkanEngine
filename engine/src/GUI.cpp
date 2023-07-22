@@ -76,17 +76,6 @@ namespace Engine {
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
-    void GUI::draw() {
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-
-        ImGui::NewFrame();
-
-        ImGui::ShowDemoWindow();
-
-        ImGui::Render();
-    }
-
     void GUI::render(VkCommandBuffer buffer) {
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), buffer);
     }
@@ -100,5 +89,16 @@ namespace Engine {
     }
 
     VkDescriptorPool GUI::imguiPool = nullptr;
+
+    void GUI::begin() {
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+
+        ImGui::NewFrame();
+    }
+
+    void GUI::end() {
+        ImGui::Render();
+    }
 }
 

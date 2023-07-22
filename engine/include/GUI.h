@@ -11,7 +11,9 @@ namespace Engine {
                          VkQueue graphicsQueue,
                          VkRenderPass renderPass, VkCommandPool commandPool, VkCommandBuffer commandBuffer);
 
-        static void draw();
+        static void begin();
+
+        static void end();
 
         static void render(VkCommandBuffer buffer);
 

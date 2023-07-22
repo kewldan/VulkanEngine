@@ -7,7 +7,10 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(plog CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(ZLIB REQUIRED)
-find_path(VULKAN_HPP_INCLUDE_DIRS "vulkan/vulkan.hpp")
+find_package(VulkanHeaders CONFIG)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
 include_directories(
         include
@@ -26,5 +29,4 @@ file(GLOB_RECURSE ENGINE_SRCS
 
 add_executable(VulkanEngine ${PROJECT_SRCS} ${ENGINE_SRCS})
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${VULKAN_HPP_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw plog::plog Vulkan::Vulkan ZLIB::ZLIB)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw plog::plog Vulkan::Vulkan ZLIB::ZLIB Vulkan::Headers GPUOpen::VulkanMemoryAllocator imgui::imgui glm::glm)

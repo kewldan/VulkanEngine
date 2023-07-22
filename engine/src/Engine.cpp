@@ -16,12 +16,9 @@ namespace Engine {
 
         Vulkan vkHandler(application.getWindow()->getHandle(), true);
 
-        vkHandler.addGLFWExtensions();
-        vkHandler.getExtensions().push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
         vkHandler.getValidationLayers().push_back("VK_LAYER_KHRONOS_validation");
 
-        vkHandler.init();
+        vkHandler.init(std::vector<const char *>() = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
 
         VkInstance vkInstance = vkHandler.getInstance();
         application.create(vkInstance);

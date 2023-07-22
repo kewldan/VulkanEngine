@@ -40,19 +40,6 @@ namespace Engine {
         return true;
     }
 
-    void Vulkan::addGLFWExtensions() {
-        uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions;
-
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-        extensions.reserve(glfwExtensionCount);
-
-        for (int i = 0; i < glfwExtensionCount; i++) {
-            extensions.push_back(glfwExtensions[i]);
-        }
-    }
-
     Vulkan::Vulkan(GLFWwindow *window, bool enableValidationLayers) : window(window),
                                                                       enableValidationLayers(enableValidationLayers) {
         rect = new Mesh(
@@ -69,19 +56,29 @@ namespace Engine {
     }
 
     VkBool32 Vulkan::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                   VkDebugUtilsMessageTypeFlagsEXT,
+                                   VkDebugUtilsMessageTypeFlagsEXT messageType,
                                    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
+        const char* prefix = "";
+        if(messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT){
+            prefix = "[GEN]";
+        }else if(messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT){
+            prefix = "[DEV]";
+        }else if(messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT){
+            prefix = "[PER]";
+        }else if(messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT){
+            prefix = "[VAL]";
+        }
         if (messageSeverity & VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            PLOGE << pCallbackData->pMessage;
+            PLOGE << prefix << " " << pCallbackData->pMessage;
         } else if (messageSeverity &
                    VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            PLOGW << pCallbackData->pMessage;
+            PLOGW << prefix << " " << pCallbackData->pMessage;
         } else if (messageSeverity &
                    VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-            PLOGI << pCallbackData->pMessage;
+            PLOGI << prefix << " " << pCallbackData->pMessage;
         } else if (messageSeverity &
                    VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-            PLOGV << pCallbackData->pMessage;
+            PLOGV << prefix << " " << pCallbackData->pMessage;
         }
         return VK_FALSE;
     }
@@ -90,7 +87,7 @@ namespace Engine {
         return vkInstance;
     }
 
-    void Vulkan::createInstance() {
+    void Vulkan::createInstance(std::vector<const char *> extensions) {
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Hello Triangle";
@@ -102,6 +99,14 @@ namespace Engine {
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
+
+        uint32_t glfwExtensionCount = 0;
+        const char **glfwExtensions;
+        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+        for (int i = 0; i < glfwExtensionCount; i++) {
+            extensions.push_back(glfwExtensions[i]);
+        }
 
         createInfo.enabledExtensionCount = extensions.size();
         createInfo.ppEnabledExtensionNames = extensions.data();
@@ -118,7 +123,6 @@ namespace Engine {
 
             createInfo.pNext = nullptr;
         }
-
         VkResult vkResult = vkCreateInstance(&createInfo, nullptr, &vkInstance);
         if (vkResult != VK_SUCCESS) {
             throw std::runtime_error("failed to create vulkan instance");
@@ -178,8 +182,6 @@ namespace Engine {
     }
 
     void Vulkan::setupDebugMessenger() {
-        if (!enableValidationLayers) return;
-
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
 
@@ -188,21 +190,19 @@ namespace Engine {
         }
     }
 
-    void Vulkan::init() {
+    void Vulkan::init(std::vector<const char *> &extensions) {
         assert(window != nullptr);
 
         if (enableValidationLayers && !checkValidationLayers()) {
             throw std::runtime_error("validation layers is not available");
         }
 
-        createInstance();
+        createInstance(extensions);
 
         if (enableValidationLayers) {
             setupDebugMessenger();
         }
 
-        createInstance();
-        setupDebugMessenger();
         createSurface();
 
         DeviceHandler::getDevices(&swapChainSupport, &vkPhysicalDevice, &vkLogicalDevice, &indices, vkInstance,
@@ -327,10 +327,6 @@ namespace Engine {
 
     std::vector<const char *> &Vulkan::getValidationLayers() {
         return validationLayers;
-    }
-
-    std::vector<const char *> &Vulkan::getExtensions() {
-        return extensions;
     }
 
     void Vulkan::createImageViews() {

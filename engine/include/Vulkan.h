@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include <vector>
 #include <memory>
 #include <optional>
@@ -37,7 +37,6 @@ namespace Engine {
     class Vulkan {
     private:
         std::vector<const char *> validationLayers;
-        std::vector<const char *> extensions;
 
         std::vector<VkImageView> swapChainImageViews;
         std::vector<VkFramebuffer> swapChainFramebuffers;
@@ -51,7 +50,7 @@ namespace Engine {
 
         bool checkValidationLayers();
 
-        void createInstance();
+        void createInstance(std::vector<const char *> extensions);
 
         void setupDebugMessenger();
 
@@ -147,11 +146,7 @@ namespace Engine {
     public:
         explicit Vulkan(GLFWwindow *wind, bool validation = true);
 
-        void addGLFWExtensions();
-
         [[nodiscard]] std::vector<const char *> &getValidationLayers();
-
-        [[nodiscard]] std::vector<const char *> &getExtensions();
 
         VkInstance &getInstance();
 
@@ -161,6 +156,6 @@ namespace Engine {
 
         void cleanup();
 
-        void init();
+        void init(std::vector<const char *> &extensions);
     };
 }

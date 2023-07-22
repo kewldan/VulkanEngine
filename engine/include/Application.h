@@ -3,22 +3,23 @@
 #include <vulkan/vulkan.h>
 #include "Window.h"
 #include "VulkanContext.h"
+#include "InputManager.h"
+#include <memory>
 
 namespace Engine {
     class Application {
     protected:
-        VulkanContext context{};
-        Window *window{};
+        VulkanContext context;
+        std::unique_ptr<Window> window;
     public:
         virtual void create(VulkanContext context);
 
         virtual void createWindow() = 0;
 
-        virtual Window *getWindow();
-
         virtual void init() = 0;
 
-        virtual void render(VkCommandBuffer commandBuffer, VkDescriptorSet *descriptorSet) = 0;
+        virtual void
+        render(VkCommandBuffer commandBuffer) = 0;
 
         virtual void gui() = 0;
 
@@ -27,5 +28,7 @@ namespace Engine {
         virtual void cleanup() = 0;
 
         virtual bool shouldClose();
+
+        [[nodiscard]] const std::unique_ptr<Window> &getWindow() const;
     };
 }

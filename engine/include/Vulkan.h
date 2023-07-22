@@ -21,12 +21,6 @@ namespace Engine {
         std::vector<VkPresentModeKHR> presentModes;
     };
 
-    struct UniformBufferObject {
-        glm::mat4 model;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
                                           const VkAllocationCallbacks *pAllocator,
                                           VkDebugUtilsMessengerEXT *pDebugMessenger);
@@ -42,8 +36,6 @@ namespace Engine {
         std::vector<VkFramebuffer> swapChainFramebuffers;
         int currentFrame = 0;
         bool framebufferResized = false;
-
-        const int MAX_FRAMES_IN_FLIGHT = 2;
 
         std::vector<VkImage> swapChainImages;
         bool enableValidationLayers;
@@ -74,7 +66,7 @@ namespace Engine {
 
         void createImageViews();
 
-        void createGraphicsPipeline();
+        void createPipelineLayout();
 
         void createRenderPass();
 
@@ -92,10 +84,6 @@ namespace Engine {
 
         void createDescriptorSetLayout();
 
-        void createDescriptorSets();
-
-        void createUniformBuffers();
-
         void createDescriptorPool();
 
         VkInstance vkInstance{};
@@ -107,18 +95,13 @@ namespace Engine {
         VkPipelineLayout pipelineLayout{};
         VkDescriptorSetLayout descriptorSetLayout{};
         VkRenderPass renderPass{};
-        VkPipeline graphicsPipeline{};
         VkCommandPool commandPool{};
         std::vector<VkCommandBuffer> commandBuffers;
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
-        std::vector<VkDescriptorSet> descriptorSets;
         SwapChainSupportDetails swapChainSupport;
 
-        std::vector<VkBuffer> uniformBuffers;
-        std::vector<VkDeviceMemory> uniformBuffersMemory;
-        std::vector<void *> uniformBuffersMapped;
         VkDescriptorPool descriptorPool{};
 
         VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
@@ -144,8 +127,6 @@ namespace Engine {
         void idle();
 
         void cleanup();
-
-        void updateUniformBuffer(uint32_t currentImage);
 
         void init(std::vector<const char *> &extensions);
     };

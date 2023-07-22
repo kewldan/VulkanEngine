@@ -5,7 +5,7 @@
 namespace Engine {
     class Assets {
     public:
-        static Mesh *loadMeshes(const char *filename, const int *count);
+        static Mesh *loadMeshes(const char *filename, int *count);
 
         static VkShaderModule loadShader(VkDevice device, const char *filename);
     };

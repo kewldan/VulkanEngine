@@ -5,9 +5,15 @@
 
 namespace Engine {
     class GameObject : public Transform {
+    public:
         Mesh *meshes{};
         int meshCount{};
-    public:
+
         GameObject();
+
+        void upload(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool,
+                    VkQueue graphicsQueue) const;
+
+        void cleanup(VkDevice device) const;
     };
 }

@@ -12,12 +12,19 @@ namespace Engine {
 
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
         application.createWindow();
 
-        Vulkan vkHandler(application.getWindow()->getHandle(), true);
+#ifndef NDEBUG
+        const bool validationLayers = true;
+#else
+        const bool validationLayers = false;
+#endif
 
+        Vulkan vkHandler(application.getWindow()->getHandle(), validationLayers);
+
+#ifndef NDEBUG
         vkHandler.getValidationLayers().push_back("VK_LAYER_KHRONOS_validation");
+#endif
 
         vkHandler.init(std::vector<const char *>() = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
 
@@ -29,8 +36,17 @@ namespace Engine {
                                    vkHandler.graphicsQueue,
                                    vkHandler.presentQueue,
                                    vkHandler.commandPool,
-                                   vkHandler.pipelineLayout
+                                   vkHandler.pipelineLayout,
+                                   vkHandler.renderPass,
+                                   &vkHandler.swapChainExtent,
+                                   vkHandler.descriptorSetLayout,
+                                   vkHandler.descriptorPool,
+                                   &vkHandler.currentFrame
                            });
+
+        GUI::init(application.getWindow()->getHandle(), vkInstance, vkHandler.vkPhysicalDevice,
+                  vkHandler.vkLogicalDevice, vkHandler.graphicsQueue, vkHandler.renderPass, vkHandler.commandPool,
+                  vkHandler.commandBuffers[0]);
 
         application.init();
         while (!application.shouldClose()) {
@@ -38,9 +54,7 @@ namespace Engine {
 
             int currentFrame = vkHandler.syncNewFrame();
 
-            vkHandler.updateUniformBuffer(currentFrame);
-
-            application.render(vkHandler.commandBuffers[currentFrame], &vkHandler.descriptorSets[currentFrame]);
+            application.render(vkHandler.commandBuffers[currentFrame]);
 
             GUI::begin();
             application.gui();

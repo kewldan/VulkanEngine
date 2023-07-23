@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Mesh.h"
-#include "Transform.h"
+#include "graphics/Mesh.h"
+#include "physics/Transform.h"
 
 namespace Engine {
     class GameObject : public Transform {

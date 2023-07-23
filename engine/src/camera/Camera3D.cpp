@@ -1,6 +1,6 @@
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include "Camera3D.h"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "camera/Camera3D.h"
 
 namespace Engine {
     void Camera3D::update(float windowWidth, float windowHeight) {

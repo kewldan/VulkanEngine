@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Application.h"
-#include "Mesh.h"
+#include "common/Application.h"
+#include "graphics/Mesh.h"
 #include "vulkan/UniformBuffer.h"
-#include "Camera3D.h"
-#include "GameObject.h"
+#include "camera/Camera3D.h"
+#include "common/GameObject.h"
+#include <vulkan/VulkanHelper.h>
 #include <vector>
 
 struct Uniform_CameraData {
@@ -25,13 +26,8 @@ private:
     std::unique_ptr<Engine::UniformBuffer<Uniform_ModelData>> uniformModel;
     std::unique_ptr<Engine::Camera3D> camera;
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
-    std::vector<VkDescriptorBufferInfo> uniformBuffersInfo;
-
-    std::vector<VkDescriptorSet> descriptorSets;
 
     void createGraphicsPipeline();
-
-    void createDescriptorSets();
 
     void createPipelineLayout();
 

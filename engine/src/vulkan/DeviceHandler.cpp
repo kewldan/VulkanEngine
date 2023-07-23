@@ -62,7 +62,7 @@ namespace Engine {
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
         if (deviceCount == 0) {
-            throw std::runtime_error("failed to find GPUs with Vulkan support!");
+            throw std::runtime_error("failed to find GPUs with VulkanHelper support!");
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);

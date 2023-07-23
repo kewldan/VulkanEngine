@@ -1,4 +1,4 @@
-#include "Application.h"
+#include "common/Application.h"
 
 namespace Engine {
     bool Application::shouldClose() {

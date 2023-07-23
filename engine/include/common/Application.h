@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "vulkan/VulkanHelper.h"
 #include "Window.h"
-#include "VulkanContext.h"
-#include "InputManager.h"
+#include "vulkan/VulkanContext.h"
+#include "input/InputManager.h"
 #include <memory>
 
 namespace Engine {

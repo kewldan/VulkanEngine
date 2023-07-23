@@ -1,4 +1,4 @@
-#include "Camera.h"
+#include "camera/Camera.h"
 
 namespace Engine {
     const glm::mat4 &Camera::getView() const {

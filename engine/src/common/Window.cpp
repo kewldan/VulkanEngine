@@ -1,6 +1,6 @@
 #include <cassert>
 #include <stdexcept>
-#include "Window.h"
+#include "common/Window.h"
 
 namespace Engine {
     Window::Window(const char *title, int width, int height) : width(width), height(height) {

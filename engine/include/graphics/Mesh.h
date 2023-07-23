@@ -1,8 +1,20 @@
 #pragma once
 
-#include "Vertex.h"
+#include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 
 namespace Engine {
+    struct Vertex {
+    public:
+        glm::vec3 pos;
+        glm::vec3 normal;
+        glm::vec2 uv;
+
+        static VkVertexInputBindingDescription getBindingDescription();
+
+        static VkVertexInputAttributeDescription *getAttributeDescriptions(int *);
+    };
+
     class Mesh {
     public:
         Vertex *vertices = nullptr;

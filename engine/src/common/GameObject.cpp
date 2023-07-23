@@ -1,4 +1,4 @@
-#include "GameObject.h"
+#include "common/GameObject.h"
 
 namespace Engine {
     GameObject::GameObject() = default;

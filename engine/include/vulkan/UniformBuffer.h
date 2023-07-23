@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "vulkan/vulkan.h"
+#include "vulkan/VulkanHelper.h"
 #include "BufferHandler.h"
 
 namespace Engine {
@@ -10,17 +10,64 @@ namespace Engine {
     private:
         std::vector<VkDeviceMemory> uniformBuffersMemory;
         std::vector<void *> uniformBuffersMapped;
+
+        VkDescriptorSetLayout getLayout(VkDevice device, VkShaderStageFlagBits shaderStage, int binding);
+
+        std::vector<VkDescriptorSet>
+        getDescriptorSet(VkDevice device, VkDescriptorPool descriptorPool, VkShaderStageFlagBits shaderStage,
+                         int binding);
+
     public:
         std::vector<VkBuffer> uniformBuffers;
+        std::vector<VkDescriptorSet> descriptorSets;
+        VkDescriptorSetLayout layout{};
 
-        UniformBuffer(VkPhysicalDevice physicalDevice, VkDevice device);
+        UniformBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDescriptorPool descriptorPool,
+                      VkShaderStageFlagBits shaderStage, int binding);
 
         void upload(int currentFrame);
 
         void cleanup(VkDevice device);
-
-        VkDescriptorSetLayout getLayout(VkDevice device, VkShaderStageFlagBits shaderStage, int binding);
     };
+
+    template<class T>
+    std::vector<VkDescriptorSet> UniformBuffer<T>::getDescriptorSet(VkDevice device, VkDescriptorPool descriptorPool,
+                                                                    VkShaderStageFlagBits shaderStage, int binding) {
+        layout = getLayout(device, shaderStage, binding);
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, layout);
+
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
+        allocInfo.pSetLayouts = layouts.data();
+
+        std::vector<VkDescriptorSet> sets;
+
+        sets.resize(MAX_FRAMES_IN_FLIGHT);
+        if (vkAllocateDescriptorSets(device, &allocInfo, sets.data()) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate descriptor sets!");
+        }
+
+        for (size_t j = 0; j < MAX_FRAMES_IN_FLIGHT; j++) {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = uniformBuffers[j];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(T);
+
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = sets[j];
+            descriptorWrite.dstBinding = binding;
+            descriptorWrite.dstArrayElement = 0;
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount = 1;
+            descriptorWrite.pBufferInfo = &bufferInfo;
+            vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+        }
+
+        return sets;
+    }
 
     template<class T>
     VkDescriptorSetLayout UniformBuffer<T>::getLayout(VkDevice device, VkShaderStageFlagBits shaderStage, int binding) {
@@ -29,12 +76,13 @@ namespace Engine {
         layoutBinding.descriptorCount = 1;
         layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         layoutBinding.pImmutableSamplers = nullptr;
-        layoutBinding.stageFlags = shaderStage; //TODO: Other shaders
+        layoutBinding.stageFlags = shaderStage;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = 1;
         layoutInfo.pBindings = &layoutBinding;
+        layoutInfo.pNext = nullptr; // Make sure to initialize the pNext field
 
         VkDescriptorSetLayout descriptorSetLayout{};
         if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
@@ -45,7 +93,8 @@ namespace Engine {
     }
 
     template<class T>
-    UniformBuffer<T>::UniformBuffer(VkPhysicalDevice physicalDevice, VkDevice device) {
+    UniformBuffer<T>::UniformBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDescriptorPool descriptorPool,
+                                    VkShaderStageFlagBits shaderStage, int binding) {
         VkDeviceSize bufferSize = sizeof(T);
 
         uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -61,6 +110,8 @@ namespace Engine {
 
             vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
         }
+
+        descriptorSets = getDescriptorSet(device, descriptorPool, shaderStage, binding);
     }
 
     template<class T>

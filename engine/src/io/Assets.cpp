@@ -1,6 +1,7 @@
+#include <cassert>
 #include "io/Assets.h"
 #include "io/Filesystem.h"
-
+#include "graphics/Mesh.h"
 #include "OBJ_Loader.h"
 
 namespace Engine {

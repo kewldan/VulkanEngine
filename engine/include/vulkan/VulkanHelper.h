@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
+#include "vulkan/vulkan.hpp"
 #include <vector>
 #include <memory>
 #include <optional>
-#include <GLFW/glfw3.h>
-#include "Mesh.h"
+#include "GLFW/glfw3.h"
+#include "graphics/Mesh.h"
 
 namespace Engine {
     struct QueueFamilyIndices {
@@ -28,7 +28,7 @@ namespace Engine {
     void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
                                        const VkAllocationCallbacks *pAllocator);
 
-    class Vulkan {
+    class VulkanHelper {
     public:
         std::vector<const char *> validationLayers;
 
@@ -108,7 +108,7 @@ namespace Engine {
 
         GLFWwindow *window;
     public:
-        explicit Vulkan(GLFWwindow *wind, bool validation = true);
+        explicit VulkanHelper(GLFWwindow *wind, bool validation = true);
 
         [[nodiscard]] std::vector<const char *> &getValidationLayers();
 
@@ -118,7 +118,7 @@ namespace Engine {
 
         void endFrame();
 
-        void idle();
+        void idle() const;
 
         void cleanup();
 

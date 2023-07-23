@@ -1,9 +1,9 @@
-#include "Engine.h"
-#include "Vulkan.h"
+#include "common/Engine.h"
+#include "vulkan/VulkanHelper.h"
 #include "plog/Init.h"
 #include "plog/Formatters/FuncMessageFormatter.h"
 #include "plog/Appenders/ColorConsoleAppender.h"
-#include "GUI.h"
+#include "gui/GUI.h"
 
 namespace Engine {
     void Engine::run(Application &application) {
@@ -20,7 +20,7 @@ namespace Engine {
         const bool validationLayers = false;
 #endif
 
-        Vulkan vkHandler(application.getWindow()->getHandle(), validationLayers);
+        VulkanHelper vkHandler(application.getWindow()->getHandle(), validationLayers);
 
 #ifndef NDEBUG
         vkHandler.getValidationLayers().push_back("VK_LAYER_KHRONOS_validation");

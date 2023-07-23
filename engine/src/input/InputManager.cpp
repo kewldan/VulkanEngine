@@ -1,4 +1,4 @@
-#include "InputManager.h"
+#include "input/InputManager.h"
 
 namespace Engine {
     void InputManager::registerCallbacks(GLFWwindow *window) {

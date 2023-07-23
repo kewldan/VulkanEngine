@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 typedef glm::vec3 Position;
 typedef glm::vec3 Rotation;

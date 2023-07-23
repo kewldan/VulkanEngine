@@ -1,24 +1,21 @@
 #define GLFW_INCLUDE_VULKAN
 
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
 
 #include <stdexcept>
 #include <cassert>
 #include <algorithm>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
 #include "io/Filesystem.h"
 
-#include "Vulkan.h"
+#include "vulkan/VulkanHelper.h"
 #include "vulkan/DeviceHandler.h"
 #include "plog/Log.h"
 #include "vulkan/BufferHandler.h"
-#include "GUI.h"
-#include "io/Assets.h"
+#include "gui/GUI.h"
 #include "vulkan/DebugUtils.h"
 
 namespace Engine {
-    bool Vulkan::checkValidationLayers() {
+    bool VulkanHelper::checkValidationLayers() {
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -43,13 +40,14 @@ namespace Engine {
         return true;
     }
 
-    Vulkan::Vulkan(GLFWwindow *window, bool enableValidationLayers) : window(window),
-                                                                      enableValidationLayers(enableValidationLayers) {
+    VulkanHelper::VulkanHelper(GLFWwindow *window, bool enableValidationLayers) : window(window),
+                                                                                  enableValidationLayers(
+                                                                                          enableValidationLayers) {
     }
 
-    VkBool32 Vulkan::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                   VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                   const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
+    VkBool32 VulkanHelper::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *) {
         const char *prefix = "";
         if (messageType & VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
             prefix = "[GEN]";
@@ -76,11 +74,11 @@ namespace Engine {
         return VK_FALSE;
     }
 
-    VkInstance &Vulkan::getInstance() {
+    VkInstance &VulkanHelper::getInstance() {
         return vkInstance;
     }
 
-    void Vulkan::createInstance(std::vector<const char *> extensions) {
+    void VulkanHelper::createInstance(std::vector<const char *> extensions) {
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Hello Triangle";
@@ -122,7 +120,7 @@ namespace Engine {
         }
     }
 
-    void Vulkan::cleanup() {
+    void VulkanHelper::cleanup() {
         cleanupSwapChain();
 
         GUI::cleanup(vkLogicalDevice);
@@ -149,7 +147,7 @@ namespace Engine {
         vkDestroyInstance(vkInstance, nullptr);
     }
 
-    void Vulkan::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
+    void VulkanHelper::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
         createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         createInfo.messageSeverity =
@@ -161,7 +159,7 @@ namespace Engine {
         createInfo.pfnUserCallback = debugCallback;
     }
 
-    void Vulkan::setupDebugMessenger() {
+    void VulkanHelper::setupDebugMessenger() {
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
 
@@ -170,7 +168,7 @@ namespace Engine {
         }
     }
 
-    void Vulkan::init(std::vector<const char *> &extensions) {
+    void VulkanHelper::init(std::vector<const char *> &extensions) {
         assert(window != nullptr);
 
         if (enableValidationLayers && !checkValidationLayers()) {
@@ -202,14 +200,14 @@ namespace Engine {
         createSyncObjects();
     }
 
-    void Vulkan::createSurface() {
+    void VulkanHelper::createSurface() {
         assert(window != nullptr);
         if (glfwCreateWindowSurface(vkInstance, window, nullptr, &surface) != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
     }
 
-    void Vulkan::createSwapChain() {
+    void VulkanHelper::createSwapChain() {
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
@@ -260,7 +258,7 @@ namespace Engine {
         swapChainExtent = extent;
     }
 
-    VkSurfaceFormatKHR Vulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
+    VkSurfaceFormatKHR VulkanHelper::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
         for (const auto &availableFormat: availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
                 availableFormat.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT) {
@@ -271,7 +269,7 @@ namespace Engine {
         return availableFormats[0];
     }
 
-    VkPresentModeKHR Vulkan::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {
+    VkPresentModeKHR VulkanHelper::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {
         for (const auto &availablePresentMode: availablePresentModes) {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return availablePresentMode;
@@ -281,7 +279,7 @@ namespace Engine {
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D Vulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const {
+    VkExtent2D VulkanHelper::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const {
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
         } else {
@@ -302,11 +300,11 @@ namespace Engine {
         }
     }
 
-    std::vector<const char *> &Vulkan::getValidationLayers() {
+    std::vector<const char *> &VulkanHelper::getValidationLayers() {
         return validationLayers;
     }
 
-    void Vulkan::createImageViews() {
+    void VulkanHelper::createImageViews() {
         swapChainImageViews.resize(swapChainImages.size());
 
         for (size_t i = 0; i < swapChainImages.size(); i++) {
@@ -331,7 +329,7 @@ namespace Engine {
         }
     }
 
-    void Vulkan::createRenderPass() {
+    void VulkanHelper::createRenderPass() {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -363,7 +361,7 @@ namespace Engine {
         }
     }
 
-    void Vulkan::createFramebuffers() {
+    void VulkanHelper::createFramebuffers() {
 
         swapChainFramebuffers.resize(swapChainImageViews.size());
 
@@ -390,7 +388,7 @@ namespace Engine {
         }
     }
 
-    void Vulkan::createCommandPool() {
+    void VulkanHelper::createCommandPool() {
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -401,7 +399,7 @@ namespace Engine {
         }
     }
 
-    void Vulkan::createSyncObjects() {
+    void VulkanHelper::createSyncObjects() {
         imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -424,11 +422,11 @@ namespace Engine {
         }
     }
 
-    void Vulkan::idle() {
+    void VulkanHelper::idle() const {
         vkDeviceWaitIdle(vkLogicalDevice);
     }
 
-    void Vulkan::recreateSwapChain() {
+    void VulkanHelper::recreateSwapChain() {
         int width = 0, height = 0;
         glfwGetFramebufferSize(window, &width, &height);
         while (width == 0 || height == 0) {
@@ -445,7 +443,7 @@ namespace Engine {
         createFramebuffers();
     }
 
-    void Vulkan::cleanupSwapChain() {
+    void VulkanHelper::cleanupSwapChain() {
         for (auto &swapChainFramebuffer: swapChainFramebuffers) {
             vkDestroyFramebuffer(vkLogicalDevice, swapChainFramebuffer, nullptr);
         }
@@ -457,7 +455,7 @@ namespace Engine {
         vkDestroySwapchainKHR(vkLogicalDevice, swapChain, nullptr);
     }
 
-    void Vulkan::createCommandBuffers() {
+    void VulkanHelper::createCommandBuffers() {
         commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
@@ -471,7 +469,7 @@ namespace Engine {
         }
     }
 
-    void Vulkan::createDescriptorPool() {
+    void VulkanHelper::createDescriptorPool() {
         VkDescriptorPoolSize poolSize[] = {
                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 40}
         };
@@ -480,14 +478,14 @@ namespace Engine {
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = sizeof(poolSize) / sizeof(*poolSize);
         poolInfo.pPoolSizes = poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(1000);
+        poolInfo.maxSets = static_cast<uint32_t>(40);
 
         if (vkCreateDescriptorPool(vkLogicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
     }
 
-    int Vulkan::syncNewFrame() {
+    int VulkanHelper::syncNewFrame() {
         vkWaitForFences(vkLogicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         VkResult result = vkAcquireNextImageKHR(vkLogicalDevice, swapChain, UINT64_MAX,
@@ -526,7 +524,7 @@ namespace Engine {
         return currentFrame;
     }
 
-    void Vulkan::endFrame() {
+    void VulkanHelper::endFrame() {
         vkCmdEndRenderPass(commandBuffers[currentFrame]);
 
         if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {

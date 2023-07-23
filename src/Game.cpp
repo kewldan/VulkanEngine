@@ -30,18 +30,20 @@ void Game::init() {
     planeGameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
 
     uniformCamera = std::make_unique<Engine::UniformBuffer<Uniform_CameraData>>(context.physicalDevice,
-                                                                                context.device);
-    descriptorSetLayouts.push_back(uniformCamera->getLayout(context.device, VK_SHADER_STAGE_VERTEX_BIT, 0));
+                                                                                context.device, context.descriptorPool,
+                                                                                VK_SHADER_STAGE_VERTEX_BIT, 0);
+    descriptorSetLayouts.push_back(uniformCamera->layout);
 
-    uniformModel = std::make_unique<Engine::UniformBuffer<Uniform_ModelData>>(context.physicalDevice, context.device);
-    descriptorSetLayouts.push_back(uniformModel->getLayout(context.device, VK_SHADER_STAGE_VERTEX_BIT, 1));
+    uniformModel = std::make_unique<Engine::UniformBuffer<Uniform_ModelData>>(context.physicalDevice, context.device,
+                                                                              context.descriptorPool,
+                                                                              VK_SHADER_STAGE_VERTEX_BIT, 1);
+    descriptorSetLayouts.push_back(uniformModel->layout);
 
     camera = std::make_unique<Engine::Camera3D>();
     camera->position = glm::vec3(2.f, 2.f, 2.f);
 
     createPipelineLayout();
     createGraphicsPipeline();
-    createDescriptorSets();
 
     PLOGW << glfwGetTime() - time;
 }
@@ -57,11 +59,11 @@ void Game::update() {
     float crouch = ImGui::GetIO().DeltaTime;
     if (glfwGetKey(window->getHandle(), GLFW_KEY_W)) {
         vel.x -= std::cos(camera->rotation.y + 1.57f) * speed * crouch;
-        vel.y -= std::sin(camera->rotation.x + 1.57f) * speed * crouch;
+        vel.y -= std::sin(camera->rotation.x) * speed * crouch;
         vel.z -= std::sin(camera->rotation.y + 1.57f) * speed * crouch;
     } else if (glfwGetKey(window->getHandle(), GLFW_KEY_S)) {
         vel.x += std::cos(camera->rotation.y + 1.57f) * speed * crouch;
-        vel.y += std::sin(camera->rotation.x + 1.57f) * speed * crouch;
+        vel.y += std::sin(camera->rotation.x) * speed * crouch;
         vel.z += std::sin(camera->rotation.y + 1.57f) * speed * crouch;
     }
 
@@ -99,7 +101,7 @@ void Game::cleanup() {
 }
 
 void Game::createWindow() {
-    window = std::make_unique<Engine::Window>("Vulkan game", 800, 600);
+    window = std::make_unique<Engine::Window>("VulkanHelper game", 800, 600);
 }
 
 void Game::render(VkCommandBuffer commandBuffer) {
@@ -119,8 +121,7 @@ void Game::render(VkCommandBuffer commandBuffer) {
     scissor.extent = *context.swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    uniformModel->model = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime() * glm::radians(90.0f),
-                                      glm::vec3(0.0f, 0.0f, 1.0f));
+    uniformModel->model = cubeGameObject->getModel();
     uniformModel->upload(*context.currentFrame);
     for (int i = 0; i < cubeGameObject->meshCount; i++) {
         VkBuffer vertexBuffers[] = {cubeGameObject->meshes[i].vertexBuffer};
@@ -128,10 +129,13 @@ void Game::render(VkCommandBuffer commandBuffer) {
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, cubeGameObject->meshes[i].indexBuffer, 0,
                              VK_INDEX_TYPE_UINT16);
-
+        VkDescriptorSet sets[] = {
+                uniformCamera->descriptorSets[*context.currentFrame],
+                uniformModel->descriptorSets[*context.currentFrame]
+        };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout, 0, 1,
-                                &descriptorSets[0], 0, nullptr);
+                                pipelineLayout, 0, 2,
+                                sets, 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, cubeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
     }
 
@@ -145,9 +149,13 @@ void Game::render(VkCommandBuffer commandBuffer) {
         vkCmdBindIndexBuffer(commandBuffer, planeGameObject->meshes[i].indexBuffer, 0,
                              VK_INDEX_TYPE_UINT16);
 
+        VkDescriptorSet sets[] = {
+                uniformCamera->descriptorSets[*context.currentFrame],
+                uniformModel->descriptorSets[*context.currentFrame]
+        };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout, 0, 1,
-                                &descriptorSets[1], 0, nullptr);
+                                pipelineLayout, 0, 2,
+                                sets, 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, planeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
     }
 }
@@ -274,37 +282,6 @@ void Game::createGraphicsPipeline() {
 
     vkDestroyShaderModule(context.device, fragShaderModule, nullptr);
     vkDestroyShaderModule(context.device, vertShaderModule, nullptr);
-}
-
-void Game::createDescriptorSets() {
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = context.descriptorPool;
-    allocInfo.descriptorSetCount = descriptorSetLayouts.size();
-    allocInfo.pSetLayouts = descriptorSetLayouts.data();
-
-    descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(context.device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
-
-    for (int i = 0; i < 2; i++) {
-        VkDescriptorBufferInfo bufferInfo[] = {
-                {uniformCamera->uniformBuffers[i], 0, sizeof(Uniform_CameraData)},
-                {uniformModel->uniformBuffers[i],  0, sizeof(Uniform_ModelData)}
-        };
-        for (int j = 0; j < sizeof(bufferInfo) / sizeof(*bufferInfo); j++) {
-            VkWriteDescriptorSet descriptorWrite{};
-            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrite.dstSet = descriptorSets[j];
-            descriptorWrite.dstBinding = j;
-            descriptorWrite.dstArrayElement = 0;
-            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrite.descriptorCount = 1;
-            descriptorWrite.pBufferInfo = &bufferInfo[j];
-            vkUpdateDescriptorSets(context.device, 1, &descriptorWrite, 0, nullptr);
-        }
-    }
 }
 
 void Game::createPipelineLayout() {

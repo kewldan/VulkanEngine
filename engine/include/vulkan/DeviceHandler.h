@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-#include "Vulkan.h"
+#include "VulkanHelper.h"
+#include "VulkanHelper.h"
 
 namespace Engine {
     class DeviceHandler {

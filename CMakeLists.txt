@@ -13,7 +13,7 @@ find_package(VulkanHeaders CONFIG)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
-find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
+find_package(Bullet CONFIG REQUIRED)
 
 include_directories(
         include
@@ -31,6 +31,6 @@ file(GLOB_RECURSE ENGINE_SRCS
         engine/include/*.h
         )
 
-add_executable(VulkanEngine ${PROJECT_SRCS} ${ENGINE_SRCS})
+add_executable(${PROJECT_NAME} ${PROJECT_SRCS} ${ENGINE_SRCS})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw plog::plog Vulkan::Vulkan ZLIB::ZLIB Vulkan::Headers GPUOpen::VulkanMemoryAllocator imgui::imgui glm::glm unofficial::omniverse-physx-sdk::sdk)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw plog::plog Vulkan::Vulkan ZLIB::ZLIB Vulkan::Headers GPUOpen::VulkanMemoryAllocator imgui::imgui glm::glm ${BULLET_LIBRARIES})

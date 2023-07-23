@@ -4,9 +4,9 @@
 #include "graphics/Mesh.h"
 #include "vulkan/UniformBuffer.h"
 #include "camera/Camera3D.h"
-#include "common/GameObject.h"
 #include <vulkan/VulkanHelper.h>
 #include <vector>
+#include "physics/GameWorld.h"
 
 struct Uniform_CameraData {
     glm::mat4 view;
@@ -26,6 +26,7 @@ private:
     std::unique_ptr<Engine::UniformBuffer<Uniform_ModelData>> uniformModel;
     std::unique_ptr<Engine::Camera3D> camera;
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+    std::unique_ptr<Engine::GameWorld> world;
 
     void createGraphicsPipeline();
 

@@ -21,6 +21,9 @@ void Game::init() {
         }
     });
 
+    world = std::make_unique<Engine::GameWorld>();
+    world->init();
+
     cubeGameObject = std::make_unique<Engine::GameObject>();
     cubeGameObject->meshes = Engine::Assets::loadMeshes("cube.obj", &cubeGameObject->meshCount);
     cubeGameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
@@ -86,6 +89,8 @@ void Game::update() {
 }
 
 void Game::cleanup() {
+    world->cleanup();
+
     vkDestroyPipelineLayout(context.device, pipelineLayout, nullptr);
     vkDestroyPipeline(context.device, graphicsPipeline, nullptr);
 

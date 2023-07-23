@@ -9,8 +9,6 @@
 #include "plog/Log.h"
 
 void Game::init() {
-    double time = glfwGetTime();
-
     Engine::InputManager::setRawInput(window->getHandle(), true);
     Engine::InputManager::setLockCursor(window->getHandle(), true);
     Engine::InputManager::registerCallbacks(window->getHandle());
@@ -44,11 +42,10 @@ void Game::init() {
 
     camera = std::make_unique<Engine::Camera3D>();
     camera->position = glm::vec3(2.f, 2.f, 2.f);
+    camera->rotation = glm::vec3(0.6f, -0.8f, 0.f);
 
     createPipelineLayout();
     createGraphicsPipeline();
-
-    PLOGW << glfwGetTime() - time;
 }
 
 void Game::update() {

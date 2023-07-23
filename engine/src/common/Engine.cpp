@@ -4,12 +4,16 @@
 #include "plog/Formatters/FuncMessageFormatter.h"
 #include "plog/Appenders/ColorConsoleAppender.h"
 #include "gui/GUI.h"
+#include "plog/Log.h"
+#include <chrono>
 
 namespace Engine {
     void Engine::run(Application &application) {
+        uint64_t engineInitTime = time();
+
         static plog::ColorConsoleAppender<plog::FuncMessageFormatter> consoleAppender;
         plog::init(plog::verbose, &consoleAppender);
-
+        
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         application.createWindow();
@@ -46,7 +50,12 @@ namespace Engine {
                   vkHandler.vkLogicalDevice, vkHandler.graphicsQueue, vkHandler.renderPass, vkHandler.commandPool,
                   vkHandler.commandBuffers[0]);
 
+        uint64_t applicationInitTime = time();
         application.init();
+
+        PLOGD << "Engine init took: " << time() - engineInitTime << "ms";
+        PLOGD << "Application init took: " << time() - applicationInitTime << "ms";
+
         while (!application.shouldClose()) {
             application.update();
 
@@ -70,5 +79,10 @@ namespace Engine {
         vkHandler.cleanup();
 
         glfwTerminate();
+    }
+
+    uint64_t Engine::time() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
     }
 }

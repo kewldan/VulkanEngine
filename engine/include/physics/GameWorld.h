@@ -1,18 +1,21 @@
 #pragma once
 
 #include "common/GameObject.h"
-#include <btBulletDynamicsCommon.h>
+#include <physx/PxPhysicsAPI.h>
 #include <vector>
 
 namespace Engine {
+    using namespace physx;
+
     class GameWorld {
     private:
         std::vector<GameObject *> gameObjects;
-        btDefaultCollisionConfiguration *collisionConfiguration{};
-        btCollisionDispatcher *dispatcher{};
-        btDbvtBroadphase *broadphase{};
-        btSequentialImpulseConstraintSolver *solver{};
-        btDynamicsWorld *world{};
+        PxDefaultErrorCallback gDefaultErrorCallback;
+        PxDefaultAllocator gDefaultAllocatorCallback;
+        PxFoundation *foundation;
+        PxPvd *pvd;
+        PxPhysics *physics;
+        PxScene *scene;
     public:
         GameWorld();
 

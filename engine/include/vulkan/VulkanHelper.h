@@ -6,6 +6,7 @@
 #include <optional>
 #include "GLFW/glfw3.h"
 #include "graphics/Mesh.h"
+#include "vk_mem_alloc.h"
 
 namespace Engine {
     struct QueueFamilyIndices {
@@ -95,6 +96,7 @@ namespace Engine {
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
         SwapChainSupportDetails swapChainSupport;
+        VmaAllocator allocator;
 
         VkDescriptorPool descriptorPool{};
 
@@ -104,7 +106,7 @@ namespace Engine {
         VkQueue graphicsQueue{};
         VkQueue presentQueue{};
 
-        uint32_t imageIndex;
+        uint32_t imageIndex{};
 
         GLFWwindow *window;
     public:

@@ -36,10 +36,8 @@ namespace Engine {
                                    vkHandler.graphicsQueue,
                                    vkHandler.presentQueue,
                                    vkHandler.commandPool,
-                                   vkHandler.pipelineLayout,
                                    vkHandler.renderPass,
                                    &vkHandler.swapChainExtent,
-                                   vkHandler.descriptorSetLayout,
                                    vkHandler.descriptorPool,
                                    &vkHandler.currentFrame
                            });

@@ -18,7 +18,31 @@ namespace Engine {
         void upload(int currentFrame);
 
         void cleanup(VkDevice device);
+
+        VkDescriptorSetLayout getLayout(VkDevice device, VkShaderStageFlagBits shaderStage, int binding);
     };
+
+    template<class T>
+    VkDescriptorSetLayout UniformBuffer<T>::getLayout(VkDevice device, VkShaderStageFlagBits shaderStage, int binding) {
+        VkDescriptorSetLayoutBinding layoutBinding{};
+        layoutBinding.binding = binding;
+        layoutBinding.descriptorCount = 1;
+        layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        layoutBinding.pImmutableSamplers = nullptr;
+        layoutBinding.stageFlags = shaderStage; //TODO: Other shaders
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &layoutBinding;
+
+        VkDescriptorSetLayout descriptorSetLayout{};
+        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        return descriptorSetLayout;
+    }
 
     template<class T>
     UniformBuffer<T>::UniformBuffer(VkPhysicalDevice physicalDevice, VkDevice device) {

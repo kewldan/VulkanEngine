@@ -127,12 +127,9 @@ namespace Engine {
 
         GUI::cleanup(vkLogicalDevice);
 
-        vkDestroyPipelineLayout(vkLogicalDevice, pipelineLayout, nullptr);
         vkDestroyRenderPass(vkLogicalDevice, renderPass, nullptr);
 
         vkDestroyDescriptorPool(vkLogicalDevice, descriptorPool, nullptr);
-
-        vkDestroyDescriptorSetLayout(vkLogicalDevice, descriptorSetLayout, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(vkLogicalDevice, renderFinishedSemaphores[i], nullptr);
@@ -198,8 +195,6 @@ namespace Engine {
         createSwapChain();
         createImageViews();
         createRenderPass();
-        createDescriptorSetLayout();
-        createPipelineLayout();
         createFramebuffers();
         createCommandPool();
         createDescriptorPool();
@@ -333,17 +328,6 @@ namespace Engine {
             if (vkCreateImageView(vkLogicalDevice, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create image views!");
             }
-        }
-    }
-
-    void Vulkan::createPipelineLayout() {
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-
-        if (vkCreatePipelineLayout(vkLogicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create pipeline layout!");
         }
     }
 
@@ -487,34 +471,16 @@ namespace Engine {
         }
     }
 
-    void Vulkan::createDescriptorSetLayout() {
-        VkDescriptorSetLayoutBinding uboLayoutBinding{};
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorCount = 1;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.pImmutableSamplers = nullptr;
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &uboLayoutBinding;
-
-        if (vkCreateDescriptorSetLayout(vkLogicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor set layout!");
-        }
-    }
-
     void Vulkan::createDescriptorPool() {
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        VkDescriptorPoolSize poolSize[] = {
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 40}
+        };
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+        poolInfo.poolSizeCount = sizeof(poolSize) / sizeof(*poolSize);
+        poolInfo.pPoolSizes = poolSize;
+        poolInfo.maxSets = static_cast<uint32_t>(1000);
 
         if (vkCreateDescriptorPool(vkLogicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");

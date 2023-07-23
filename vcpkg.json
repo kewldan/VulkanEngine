@@ -30,5 +30,9 @@
   }, {
     "name" : "tinyobjloader",
     "version>=" : "2.0.0-rc9"
+  }, {
+    "name" : "physx",
+    "version>=" : "5.2.1",
+    "$comment" : "    cmake_minimum_required(VERSION 3.15)\n"
   } ]
 }

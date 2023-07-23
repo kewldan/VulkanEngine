@@ -62,11 +62,9 @@ namespace Engine {
 
         static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
 
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
+        [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
         void createImageViews();
-
-        void createPipelineLayout();
 
         void createRenderPass();
 
@@ -82,8 +80,6 @@ namespace Engine {
 
         void cleanupSwapChain();
 
-        void createDescriptorSetLayout();
-
         void createDescriptorPool();
 
         VkInstance vkInstance{};
@@ -92,8 +88,6 @@ namespace Engine {
         VkSwapchainKHR swapChain{};
         VkFormat swapChainImageFormat{};
         VkExtent2D swapChainExtent{};
-        VkPipelineLayout pipelineLayout{};
-        VkDescriptorSetLayout descriptorSetLayout{};
         VkRenderPass renderPass{};
         VkCommandPool commandPool{};
         std::vector<VkCommandBuffer> commandBuffers;

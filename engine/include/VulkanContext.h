@@ -9,10 +9,8 @@ namespace Engine {
         VkDevice device;
         VkQueue graphicsQueue, presentQueue;
         VkCommandPool commandPool;
-        VkPipelineLayout pipelineLayout;
         VkRenderPass renderPass;
         VkExtent2D *swapChainExtent;
-        VkDescriptorSetLayout descriptorSetLayout;
         VkDescriptorPool descriptorPool;
         int *currentFrame;
     };

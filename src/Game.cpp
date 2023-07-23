@@ -9,6 +9,8 @@
 #include "plog/Log.h"
 
 void Game::init() {
+    double time = glfwGetTime();
+
     Engine::InputManager::setRawInput(window->getHandle(), true);
     Engine::InputManager::setLockCursor(window->getHandle(), true);
     Engine::InputManager::registerCallbacks(window->getHandle());
@@ -27,14 +29,21 @@ void Game::init() {
     planeGameObject->meshes = Engine::Assets::loadMeshes("plane.obj", &planeGameObject->meshCount);
     planeGameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
 
-    uniformBuffer = std::make_unique<Engine::UniformBuffer<UniformBuffer>>(context.physicalDevice,
-                                                                           context.device);
+    uniformCamera = std::make_unique<Engine::UniformBuffer<Uniform_CameraData>>(context.physicalDevice,
+                                                                                context.device);
+    descriptorSetLayouts.push_back(uniformCamera->getLayout(context.device, VK_SHADER_STAGE_VERTEX_BIT, 0));
+
+    uniformModel = std::make_unique<Engine::UniformBuffer<Uniform_ModelData>>(context.physicalDevice, context.device);
+    descriptorSetLayouts.push_back(uniformModel->getLayout(context.device, VK_SHADER_STAGE_VERTEX_BIT, 1));
 
     camera = std::make_unique<Engine::Camera3D>();
     camera->position = glm::vec3(2.f, 2.f, 2.f);
 
+    createPipelineLayout();
     createGraphicsPipeline();
     createDescriptorSets();
+
+    PLOGW << glfwGetTime() - time;
 }
 
 void Game::update() {
@@ -67,19 +76,23 @@ void Game::update() {
 
     camera->update((float) context.swapChainExtent->width, (float) context.swapChainExtent->height);
 
-    uniformBuffer->model = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime() * glm::radians(90.0f),
-                                       glm::vec3(0.0f, 0.0f, 1.0f));
-    uniformBuffer->view = camera->getView();
-    uniformBuffer->proj = camera->getProjection();
-    uniformBuffer->proj[1][1] *= -1;
+    uniformCamera->view = camera->getView();
+    uniformCamera->proj = camera->getProjection();
+    uniformCamera->proj[1][1] *= -1;
 
-    uniformBuffer->upload(*context.currentFrame);
+    uniformCamera->upload(*context.currentFrame);
 }
 
 void Game::cleanup() {
+    vkDestroyPipelineLayout(context.device, pipelineLayout, nullptr);
     vkDestroyPipeline(context.device, graphicsPipeline, nullptr);
 
-    uniformBuffer->cleanup(context.device);
+    for (VkDescriptorSetLayout layout: descriptorSetLayouts) {
+        vkDestroyDescriptorSetLayout(context.device, layout, nullptr);
+    }
+
+    uniformCamera->cleanup(context.device);
+    uniformModel->cleanup(context.device);
     cubeGameObject->cleanup(context.device);
     planeGameObject->cleanup(context.device);
     window->cleanup();
@@ -106,6 +119,9 @@ void Game::render(VkCommandBuffer commandBuffer) {
     scissor.extent = *context.swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+    uniformModel->model = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime() * glm::radians(90.0f),
+                                      glm::vec3(0.0f, 0.0f, 1.0f));
+    uniformModel->upload(*context.currentFrame);
     for (int i = 0; i < cubeGameObject->meshCount; i++) {
         VkBuffer vertexBuffers[] = {cubeGameObject->meshes[i].vertexBuffer};
         VkDeviceSize offsets[] = {0};
@@ -114,11 +130,14 @@ void Game::render(VkCommandBuffer commandBuffer) {
                              VK_INDEX_TYPE_UINT16);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                context.pipelineLayout, 0, 1,
-                                &descriptorSets[*context.currentFrame], 0, nullptr);
+                                pipelineLayout, 0, 1,
+                                &descriptorSets[0], 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, cubeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
     }
 
+    uniformModel->model = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime() * glm::radians(40.0f),
+                                      glm::vec3(0.0f, 0.0f, 1.0f));
+    uniformModel->upload(*context.currentFrame);
     for (int i = 0; i < planeGameObject->meshCount; i++) {
         VkBuffer vertexBuffers[] = {planeGameObject->meshes[i].vertexBuffer};
         VkDeviceSize offsets[] = {0};
@@ -127,8 +146,8 @@ void Game::render(VkCommandBuffer commandBuffer) {
                              VK_INDEX_TYPE_UINT16);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                context.pipelineLayout, 0, 1,
-                                &descriptorSets[*context.currentFrame], 0, nullptr);
+                                pipelineLayout, 0, 1,
+                                &descriptorSets[1], 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, planeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
     }
 }
@@ -243,7 +262,7 @@ void Game::createGraphicsPipeline() {
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = context.pipelineLayout;
+    pipelineInfo.layout = pipelineLayout;
     pipelineInfo.renderPass = context.renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -258,32 +277,43 @@ void Game::createGraphicsPipeline() {
 }
 
 void Game::createDescriptorSets() {
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, context.descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = context.descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
+    allocInfo.descriptorSetCount = descriptorSetLayouts.size();
+    allocInfo.pSetLayouts = descriptorSetLayouts.data();
 
     descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
     if (vkAllocateDescriptorSets(context.device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo bufferInfo[2] = {
-                {uniformBuffer->uniformBuffers[i], 0, sizeof(UniformBuffer)}
+    for (int i = 0; i < 2; i++) {
+        VkDescriptorBufferInfo bufferInfo[] = {
+                {uniformCamera->uniformBuffers[i], 0, sizeof(Uniform_CameraData)},
+                {uniformModel->uniformBuffers[i],  0, sizeof(Uniform_ModelData)}
         };
+        for (int j = 0; j < sizeof(bufferInfo) / sizeof(*bufferInfo); j++) {
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = descriptorSets[j];
+            descriptorWrite.dstBinding = j;
+            descriptorWrite.dstArrayElement = 0;
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount = 1;
+            descriptorWrite.pBufferInfo = &bufferInfo[j];
+            vkUpdateDescriptorSets(context.device, 1, &descriptorWrite, 0, nullptr);
+        }
+    }
+}
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = descriptorSets[i];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = bufferInfo;
+void Game::createPipelineLayout() {
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
 
-        vkUpdateDescriptorSets(context.device, 1, &descriptorWrite, 0, nullptr);
+    if (vkCreatePipelineLayout(context.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create pipeline layout!");
     }
 }

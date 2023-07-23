@@ -4,7 +4,7 @@
 #include "Game.h"
 #include "imgui.h"
 #include "io/Assets.h"
-#include "vulkan/BufferHandler.h"
+#include "graphics/BufferHandler.h"
 #include "plog/Log.h"
 
 void Game::init() {
@@ -23,11 +23,11 @@ void Game::init() {
 
     cubeGameObject = std::make_unique<Engine::GameObject>();
     cubeGameObject->meshes = Engine::Assets::loadMeshes("cube.obj", &cubeGameObject->meshCount);
-    cubeGameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
+    cubeGameObject->upload(context.allocator);
 
     planeGameObject = std::make_unique<Engine::GameObject>();
     planeGameObject->meshes = Engine::Assets::loadMeshes("plane.obj", &planeGameObject->meshCount);
-    planeGameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
+    planeGameObject->upload(context.allocator);
 
     planeGameObject->scale = glm::vec3(100.f, 1.f, 100.f);
 
@@ -91,8 +91,8 @@ void Game::cleanup() {
     }
 
     uniformCamera->cleanup(context.device);
-    cubeGameObject->cleanup(context.device);
-    planeGameObject->cleanup(context.device);
+    cubeGameObject->cleanup(context.allocator);
+    planeGameObject->cleanup(context.allocator);
     window->cleanup();
 }
 
@@ -122,10 +122,10 @@ void Game::render(VkCommandBuffer commandBuffer) {
     data.model = cubeGameObject->getModel();
     vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData), &data);
     for (int i = 0; i < cubeGameObject->meshCount; i++) {
-        VkBuffer vertexBuffers[] = {cubeGameObject->meshes[i].vertexBuffer};
+        VkBuffer vertexBuffers[] = {cubeGameObject->meshes[i].vertexBuffer.buffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, cubeGameObject->meshes[i].indexBuffer, 0,
+        vkCmdBindIndexBuffer(commandBuffer, cubeGameObject->meshes[i].indexBuffer.buffer, 0,
                              VK_INDEX_TYPE_UINT16);
         VkDescriptorSet sets[] = {
                 uniformCamera->descriptorSets[*context.currentFrame]
@@ -139,10 +139,10 @@ void Game::render(VkCommandBuffer commandBuffer) {
     data.model = planeGameObject->getModel();
     vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData), &data);
     for (int i = 0; i < planeGameObject->meshCount; i++) {
-        VkBuffer vertexBuffers[] = {planeGameObject->meshes[i].vertexBuffer};
+        VkBuffer vertexBuffers[] = {planeGameObject->meshes[i].vertexBuffer.buffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, planeGameObject->meshes[i].indexBuffer, 0,
+        vkCmdBindIndexBuffer(commandBuffer, planeGameObject->meshes[i].indexBuffer.buffer, 0,
                              VK_INDEX_TYPE_UINT16);
 
         VkDescriptorSet sets[] = {

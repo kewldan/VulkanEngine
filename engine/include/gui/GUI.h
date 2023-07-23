@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/VulkanHelper.h"
+#include "graphics/VulkanHelper.h"
 #include "GLFW/glfw3.h"
 
 namespace Engine {

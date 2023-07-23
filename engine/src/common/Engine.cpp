@@ -1,5 +1,5 @@
 #include "common/Engine.h"
-#include "vulkan/VulkanHelper.h"
+#include "graphics/VulkanHelper.h"
 #include "plog/Init.h"
 #include "plog/Formatters/FuncMessageFormatter.h"
 #include "plog/Appenders/ColorConsoleAppender.h"
@@ -13,7 +13,7 @@ namespace Engine {
 
         static plog::ColorConsoleAppender<plog::FuncMessageFormatter> consoleAppender;
         plog::init(plog::verbose, &consoleAppender);
-        
+
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         application.createWindow();
@@ -43,6 +43,7 @@ namespace Engine {
                                    vkHandler.renderPass,
                                    &vkHandler.swapChainExtent,
                                    vkHandler.descriptorPool,
+                                   vkHandler.allocator,
                                    &vkHandler.currentFrame
                            });
 

@@ -1,6 +1,4 @@
 #include "graphics/Mesh.h"
-#include "vulkan/BufferHandler.h"
-#include "vulkan/DebugUtils.h"
 
 namespace Engine {
     Mesh::Mesh(Vertex *vertices, uint16_t *indices, int indexCount, int vertexCount) : vertices(vertices),
@@ -9,70 +7,57 @@ namespace Engine {
                                                                                        vertexCount(vertexCount) {}
 
     void
-    Mesh::upload(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue) {
+    Mesh::upload(VmaAllocator allocator) {
         {
-            VkDeviceSize bufferSize = sizeof(vertices[0]) * vertexCount;
+            VkBufferCreateInfo bufferInfo = {};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(Vertex) * vertexCount;
+            bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-            VkBuffer stagingBuffer;
-            VkDeviceMemory stagingBufferMemory;
-            BufferHandler::createBuffer(physicalDevice, device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                        stagingBuffer,
-                                        stagingBufferMemory);
+            //let the VMA library know that this data should be writeable by CPU, but also readable by GPU
+            VmaAllocationCreateInfo vmaallocInfo = {};
+            vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+            vmaCreateBuffer(allocator, &bufferInfo, &vmaallocInfo,
+                            &vertexBuffer.buffer,
+                            &vertexBuffer.allocation,
+                            nullptr);
 
             void *data;
-            vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-            memcpy(data, vertices, (size_t) bufferSize);
-            vkUnmapMemory(device, stagingBufferMemory);
+            vmaMapMemory(allocator, vertexBuffer.allocation, &data);
 
-            BufferHandler::createBuffer(physicalDevice, device, bufferSize,
-                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+            memcpy(data, vertices, sizeof(Vertex) * vertexCount);
 
-            BufferHandler::copyBuffer(device, commandPool, graphicsQueue, stagingBuffer, vertexBuffer, bufferSize);
-
-            vkDestroyBuffer(device, stagingBuffer, nullptr);
-            vkFreeMemory(device, stagingBufferMemory, nullptr);
+            vmaUnmapMemory(allocator, vertexBuffer.allocation);
         }
 
         {
-            VkDeviceSize bufferSize = sizeof(indices[0]) * indexCount;
+            VkBufferCreateInfo bufferInfo = {};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = sizeof(uint16_t) * indexCount;
+            bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-            VkBuffer stagingBuffer;
-            VkDeviceMemory stagingBufferMemory;
-            BufferHandler::createBuffer(physicalDevice, device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                        stagingBuffer,
-                                        stagingBufferMemory);
+            //let the VMA library know that this data should be writeable by CPU, but also readable by GPU
+            VmaAllocationCreateInfo vmaallocInfo = {};
+            vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+            vmaCreateBuffer(allocator, &bufferInfo, &vmaallocInfo,
+                            &indexBuffer.buffer,
+                            &indexBuffer.allocation,
+                            nullptr);
 
             void *data;
-            vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-            memcpy(data, indices, (size_t) bufferSize);
-            vkUnmapMemory(device, stagingBufferMemory);
+            vmaMapMemory(allocator, indexBuffer.allocation, &data);
 
-            BufferHandler::createBuffer(physicalDevice, device, bufferSize,
-                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+            memcpy(data, indices, sizeof(uint16_t) * indexCount);
 
-            BufferHandler::copyBuffer(device, commandPool, graphicsQueue, stagingBuffer, indexBuffer,
-                                      bufferSize);
-
-            vkDestroyBuffer(device, stagingBuffer, nullptr);
-            vkFreeMemory(device, stagingBufferMemory, nullptr);
+            vmaUnmapMemory(allocator, indexBuffer.allocation);
         }
-
-        DebugUtils::setObjectName(vertexBuffer, "Mesh vertex buffer");
-        DebugUtils::setObjectName(indexBuffer, "Mesh index buffer");
-        DebugUtils::setObjectName(vertexBufferMemory, "Mesh vertex buffer memory");
-        DebugUtils::setObjectName(indexBufferMemory, "Mesh index buffer memory");
     }
 
-    void Mesh::cleanup(VkDevice device) const {
-        vkDestroyBuffer(device, indexBuffer, nullptr);
-        vkFreeMemory(device, indexBufferMemory, nullptr);
-
-        vkDestroyBuffer(device, vertexBuffer, nullptr);
-        vkFreeMemory(device, vertexBufferMemory, nullptr);
+    void Mesh::cleanup(VmaAllocator allocator) const {
+        vmaDestroyBuffer(allocator, vertexBuffer.buffer, vertexBuffer.allocation);
+        vmaDestroyBuffer(allocator, indexBuffer.buffer, indexBuffer.allocation);
     }
 
     Mesh::Mesh() = default;

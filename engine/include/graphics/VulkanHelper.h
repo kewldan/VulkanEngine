@@ -5,7 +5,6 @@
 #include <memory>
 #include <optional>
 #include "GLFW/glfw3.h"
-#include "graphics/Mesh.h"
 #include "vk_mem_alloc.h"
 
 namespace Engine {
@@ -20,6 +19,16 @@ namespace Engine {
         VkSurfaceCapabilitiesKHR capabilities;
         std::vector<VkSurfaceFormatKHR> formats;
         std::vector<VkPresentModeKHR> presentModes;
+    };
+
+    struct AllocatedBuffer {
+        VkBuffer buffer;
+        VmaAllocation allocation;
+    };
+
+    struct AllocatedImage {
+        VkImage image;
+        VmaAllocation allocation;
     };
 
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,

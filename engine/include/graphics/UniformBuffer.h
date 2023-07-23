@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "vulkan/VulkanHelper.h"
-#include "BufferHandler.h"
+#include "graphics/VulkanHelper.h"
+#include "graphics/BufferHandler.h"
 
 namespace Engine {
     template<class T>

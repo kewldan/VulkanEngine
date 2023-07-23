@@ -12,6 +12,7 @@ namespace Engine {
         VkRenderPass renderPass;
         VkExtent2D *swapChainExtent;
         VkDescriptorPool descriptorPool;
+        VmaAllocator allocator;
         int *currentFrame;
     };
 }

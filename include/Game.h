@@ -1,10 +1,9 @@
 #pragma once
 
 #include "common/Application.h"
-#include "graphics/Mesh.h"
-#include "vulkan/UniformBuffer.h"
+#include "graphics/UniformBuffer.h"
 #include "camera/Camera3D.h"
-#include <vulkan/VulkanHelper.h>
+#include "graphics/VulkanHelper.h"
 #include <vector>
 #include "physics/GameWorld.h"
 

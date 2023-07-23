@@ -2,7 +2,7 @@
 #include <set>
 #include <cassert>
 #include <stdexcept>
-#include "vulkan/DeviceHandler.h"
+#include "graphics/DeviceHandler.h"
 
 namespace Engine {
     VkDevice

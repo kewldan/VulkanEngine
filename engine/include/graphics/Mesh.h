@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
+#include "graphics/VulkanHelper.h"
 
 namespace Engine {
     struct Vertex {
@@ -21,17 +21,15 @@ namespace Engine {
         uint16_t *indices = nullptr;
         int indexCount = 0;
         int vertexCount = 0;
-        VkBuffer vertexBuffer{};
-        VkDeviceMemory vertexBufferMemory{};
-        VkBuffer indexBuffer{};
-        VkDeviceMemory indexBufferMemory{};
+        AllocatedBuffer vertexBuffer;
+        AllocatedBuffer indexBuffer;
 
         Mesh();
 
         Mesh(Vertex *vertices, uint16_t *indices, int indexCount, int vertexCount);
 
-        void upload(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue);
+        void upload(VmaAllocator allocator);
 
-        void cleanup(VkDevice device) const;
+        void cleanup(VmaAllocator allocator) const;
     };
 }

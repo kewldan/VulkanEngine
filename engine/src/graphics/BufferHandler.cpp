@@ -1,5 +1,5 @@
 #include <stdexcept>
-#include "vulkan/BufferHandler.h"
+#include "graphics/BufferHandler.h"
 
 namespace Engine {
     uint32_t BufferHandler::findMemoryType(VkPhysicalDevice vkPhysicalDevice, uint32_t typeFilter,

@@ -3,16 +3,15 @@
 namespace Engine {
     GameObject::GameObject() = default;
 
-    void GameObject::upload(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool,
-                            VkQueue graphicsQueue) const {
+    void GameObject::upload(VmaAllocator allocator) const {
         for (int i = 0; i < meshCount; i++) {
-            meshes[i].upload(physicalDevice, device, commandPool, graphicsQueue);
+            meshes[i].upload(allocator);
         }
     }
 
-    void GameObject::cleanup(VkDevice device) const {
+    void GameObject::cleanup(VmaAllocator allocator) const {
         for (int i = 0; i < meshCount; i++) {
-            meshes[i].cleanup(device);
+            meshes[i].cleanup(allocator);
         }
     }
 }

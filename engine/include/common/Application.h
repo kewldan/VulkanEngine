@@ -1,8 +1,8 @@
 #pragma once
 
-#include "vulkan/VulkanHelper.h"
+#include "graphics/VulkanHelper.h"
 #include "Window.h"
-#include "vulkan/VulkanContext.h"
+#include "graphics/VulkanContext.h"
 #include "input/InputManager.h"
 #include <memory>
 

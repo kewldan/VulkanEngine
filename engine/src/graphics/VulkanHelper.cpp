@@ -7,11 +7,15 @@
 #include <algorithm>
 #include "io/Filesystem.h"
 
-#include "vulkan/VulkanHelper.h"
-#include "vulkan/DeviceHandler.h"
+#include "graphics/VulkanHelper.h"
+#include "graphics/DeviceHandler.h"
 #include "plog/Log.h"
 #include "gui/GUI.h"
-#include "vulkan/DebugUtils.h"
+#include "graphics/DebugUtils.h"
+
+#define VMA_IMPLEMENTATION
+
+#include "vk_mem_alloc.h"
 
 namespace Engine {
     bool VulkanHelper::checkValidationLayers() {
@@ -115,7 +119,7 @@ namespace Engine {
         }
         VkResult vkResult = vkCreateInstance(&createInfo, nullptr, &vkInstance);
         if (vkResult != VK_SUCCESS) {
-            throw std::runtime_error("failed to create vulkan instance");
+            throw std::runtime_error("failed to create graphics instance");
         }
     }
 
@@ -135,6 +139,8 @@ namespace Engine {
         }
 
         vkDestroyCommandPool(vkLogicalDevice, commandPool, nullptr);
+
+        vmaDestroyAllocator(allocator);
 
         vkDestroyDevice(vkLogicalDevice, nullptr);
 
@@ -188,6 +194,12 @@ namespace Engine {
 
         DebugUtils::m_device = vkLogicalDevice;
         DebugUtils::instance = vkInstance;
+
+        VmaAllocatorCreateInfo allocatorInfo = {};
+        allocatorInfo.physicalDevice = vkPhysicalDevice;
+        allocatorInfo.device = vkLogicalDevice;
+        allocatorInfo.instance = vkInstance;
+        vmaCreateAllocator(&allocatorInfo, &allocator);
 
         createSwapChain();
         createImageViews();

@@ -11,9 +11,8 @@ namespace Engine {
 
         GameObject();
 
-        void upload(VkPhysicalDevice physicalDevice, VkDevice device, VkCommandPool commandPool,
-                    VkQueue graphicsQueue) const;
+        void upload(VmaAllocator allocator) const;
 
-        void cleanup(VkDevice device) const;
+        void cleanup(VmaAllocator allocator) const;
     };
 }

@@ -23,7 +23,6 @@ private:
     VkPipelineLayout pipelineLayout{};
     VkPipeline graphicsPipeline{};
     std::unique_ptr<Engine::UniformBuffer<Uniform_CameraData>> uniformCamera;
-    std::unique_ptr<Engine::UniformBuffer<Uniform_ModelData>> uniformModel;
     std::unique_ptr<Engine::Camera3D> camera;
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
     std::unique_ptr<Engine::GameWorld> world;

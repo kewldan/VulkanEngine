@@ -11,7 +11,7 @@ namespace Engine {
     public:
         Position position{};
         Rotation rotation{};
-        Scale scale{};
+        Scale scale = glm::vec3(1.f);
 
         [[nodiscard]] glm::mat4 getModel() const;
     };

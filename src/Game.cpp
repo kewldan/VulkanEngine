@@ -4,7 +4,6 @@
 #include "Game.h"
 #include "imgui.h"
 #include "io/Assets.h"
-#include "glm/ext/matrix_transform.hpp"
 #include "vulkan/BufferHandler.h"
 #include "plog/Log.h"
 
@@ -30,15 +29,12 @@ void Game::init() {
     planeGameObject->meshes = Engine::Assets::loadMeshes("plane.obj", &planeGameObject->meshCount);
     planeGameObject->upload(context.physicalDevice, context.device, context.commandPool, context.graphicsQueue);
 
+    planeGameObject->scale = glm::vec3(100.f, 1.f, 100.f);
+
     uniformCamera = std::make_unique<Engine::UniformBuffer<Uniform_CameraData>>(context.physicalDevice,
                                                                                 context.device, context.descriptorPool,
                                                                                 VK_SHADER_STAGE_VERTEX_BIT, 0);
     descriptorSetLayouts.push_back(uniformCamera->layout);
-
-    uniformModel = std::make_unique<Engine::UniformBuffer<Uniform_ModelData>>(context.physicalDevice, context.device,
-                                                                              context.descriptorPool,
-                                                                              VK_SHADER_STAGE_VERTEX_BIT, 1);
-    descriptorSetLayouts.push_back(uniformModel->layout);
 
     camera = std::make_unique<Engine::Camera3D>();
     camera->position = glm::vec3(2.f, 2.f, 2.f);
@@ -87,7 +83,6 @@ void Game::update() {
 
 void Game::cleanup() {
     world->cleanup();
-
     vkDestroyPipelineLayout(context.device, pipelineLayout, nullptr);
     vkDestroyPipeline(context.device, graphicsPipeline, nullptr);
 
@@ -96,7 +91,6 @@ void Game::cleanup() {
     }
 
     uniformCamera->cleanup(context.device);
-    uniformModel->cleanup(context.device);
     cubeGameObject->cleanup(context.device);
     planeGameObject->cleanup(context.device);
     window->cleanup();
@@ -123,8 +117,10 @@ void Game::render(VkCommandBuffer commandBuffer) {
     scissor.extent = *context.swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    uniformModel->model = cubeGameObject->getModel();
-    uniformModel->upload(*context.currentFrame);
+    static Uniform_ModelData data{};
+
+    data.model = cubeGameObject->getModel();
+    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData), &data);
     for (int i = 0; i < cubeGameObject->meshCount; i++) {
         VkBuffer vertexBuffers[] = {cubeGameObject->meshes[i].vertexBuffer};
         VkDeviceSize offsets[] = {0};
@@ -132,18 +128,16 @@ void Game::render(VkCommandBuffer commandBuffer) {
         vkCmdBindIndexBuffer(commandBuffer, cubeGameObject->meshes[i].indexBuffer, 0,
                              VK_INDEX_TYPE_UINT16);
         VkDescriptorSet sets[] = {
-                uniformCamera->descriptorSets[*context.currentFrame],
-                uniformModel->descriptorSets[*context.currentFrame]
+                uniformCamera->descriptorSets[*context.currentFrame]
         };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout, 0, 2,
+                                pipelineLayout, 0, 1,
                                 sets, 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, cubeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
     }
 
-    uniformModel->model = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime() * glm::radians(40.0f),
-                                      glm::vec3(0.0f, 0.0f, 1.0f));
-    uniformModel->upload(*context.currentFrame);
+    data.model = planeGameObject->getModel();
+    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData), &data);
     for (int i = 0; i < planeGameObject->meshCount; i++) {
         VkBuffer vertexBuffers[] = {planeGameObject->meshes[i].vertexBuffer};
         VkDeviceSize offsets[] = {0};
@@ -152,11 +146,10 @@ void Game::render(VkCommandBuffer commandBuffer) {
                              VK_INDEX_TYPE_UINT16);
 
         VkDescriptorSet sets[] = {
-                uniformCamera->descriptorSets[*context.currentFrame],
-                uniformModel->descriptorSets[*context.currentFrame]
+                uniformCamera->descriptorSets[*context.currentFrame]
         };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout, 0, 2,
+                                pipelineLayout, 0, 1,
                                 sets, 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, planeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
     }
@@ -287,10 +280,14 @@ void Game::createGraphicsPipeline() {
 }
 
 void Game::createPipelineLayout() {
+    VkPushConstantRange push_constant = {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData)};
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    pipelineLayoutInfo.pPushConstantRanges = &push_constant;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
 
     if (vkCreatePipelineLayout(context.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");

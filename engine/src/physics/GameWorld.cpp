@@ -41,6 +41,7 @@ namespace Engine {
     }
 
     void GameWorld::cleanup() {
+        PxCloseExtensions();
         scene->release();
         physics->release();
         foundation->release();

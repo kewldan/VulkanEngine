@@ -10,7 +10,6 @@
 #include "vulkan/VulkanHelper.h"
 #include "vulkan/DeviceHandler.h"
 #include "plog/Log.h"
-#include "vulkan/BufferHandler.h"
 #include "gui/GUI.h"
 #include "vulkan/DebugUtils.h"
 

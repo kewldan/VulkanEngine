@@ -74,6 +74,8 @@ namespace Engine {
 
         [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
+        SwapChainSupportDetails querySwapChainSupport();
+
         void createImageViews();
 
         void createRenderPass();
@@ -92,6 +94,11 @@ namespace Engine {
 
         void createDescriptorPool();
 
+        static VkImageCreateInfo image_create_info(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
+
+        static VkImageViewCreateInfo
+        imageview_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
+
         VkInstance vkInstance{};
         VkDebugUtilsMessengerEXT debugMessenger{};
         VkSurfaceKHR surface{};
@@ -106,6 +113,9 @@ namespace Engine {
         std::vector<VkFence> inFlightFences;
         SwapChainSupportDetails swapChainSupport;
         VmaAllocator allocator;
+        VkImageView depthImageView;
+        AllocatedImage depthImage;
+        VkFormat depthFormat;
 
         VkDescriptorPool descriptorPool{};
 

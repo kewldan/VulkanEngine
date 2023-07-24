@@ -188,7 +188,7 @@ namespace Engine {
 
         createSurface();
 
-        DeviceHandler::getDevices(&swapChainSupport, &vkPhysicalDevice, &vkLogicalDevice, &indices, vkInstance,
+        DeviceHandler::getDevices(&vkPhysicalDevice, &vkLogicalDevice, &indices, vkInstance,
                                   std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME},
                                   enableValidationLayers, validationLayers, &graphicsQueue, &presentQueue, surface);
 
@@ -219,6 +219,7 @@ namespace Engine {
     }
 
     void VulkanHelper::createSwapChain() {
+        swapChainSupport = querySwapChainSupport();
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
@@ -267,6 +268,26 @@ namespace Engine {
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
+
+        VkExtent3D depthImageExtent = {
+                swapChainExtent.width,
+                swapChainExtent.height,
+                1
+        };
+
+        depthFormat = VK_FORMAT_D32_SFLOAT;
+        VkImageCreateInfo dimg_info = image_create_info(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                                        depthImageExtent);
+        VmaAllocationCreateInfo dimg_allocinfo = {};
+        dimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        dimg_allocinfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        vmaCreateImage(allocator, &dimg_info, &dimg_allocinfo, &depthImage.image, &depthImage.allocation, nullptr);
+
+        VkImageViewCreateInfo dview_info = imageview_create_info(depthFormat, depthImage.image,
+                                                                 VK_IMAGE_ASPECT_DEPTH_BIT);;
+
+        vkCreateImageView(vkLogicalDevice, &dview_info, nullptr, &depthImageView);
     }
 
     VkSurfaceFormatKHR VulkanHelper::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
@@ -351,6 +372,21 @@ namespace Engine {
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+        VkAttachmentDescription depth_attachment = {};
+        depth_attachment.flags = 0;
+        depth_attachment.format = depthFormat;
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depth_attachment_ref = {};
+        depth_attachment_ref.attachment = 1;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
         VkAttachmentReference colorAttachmentRef{};
         colorAttachmentRef.attachment = 0;
         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -359,13 +395,37 @@ namespace Engine {
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &colorAttachmentRef;
+        subpass.pDepthStencilAttachment = &depth_attachment_ref;
+
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        VkSubpassDependency depth_dependency = {};
+        depth_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        depth_dependency.dstSubpass = 0;
+        depth_dependency.srcStageMask =
+                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        depth_dependency.srcAccessMask = 0;
+        depth_dependency.dstStageMask =
+                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        depth_dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        VkSubpassDependency dependencies[2] = {dependency, depth_dependency};
+        VkAttachmentDescription attachments[2] = {colorAttachment, depth_attachment};
 
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = 1;
-        renderPassInfo.pAttachments = &colorAttachment;
+        renderPassInfo.attachmentCount = 2;
+        renderPassInfo.pAttachments = attachments;
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 2;
+        renderPassInfo.pDependencies = dependencies;
 
         if (vkCreateRenderPass(vkLogicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
@@ -378,13 +438,14 @@ namespace Engine {
 
         for (size_t i = 0; i < swapChainImageViews.size(); i++) {
             VkImageView attachments[] = {
-                    swapChainImageViews[i]
+                    swapChainImageViews[i],
+                    depthImageView
             };
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             framebufferInfo.renderPass = renderPass;
-            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.attachmentCount = 2;
             framebufferInfo.pAttachments = attachments;
             framebufferInfo.width = swapChainExtent.width;
             framebufferInfo.height = swapChainExtent.height;
@@ -447,6 +508,9 @@ namespace Engine {
 
         idle();
 
+        swapChainExtent.width = width;
+        swapChainExtent.height = height;
+
         cleanupSwapChain();
 
         createSwapChain();
@@ -462,6 +526,9 @@ namespace Engine {
         for (auto &swapChainImageView: swapChainImageViews) {
             vkDestroyImageView(vkLogicalDevice, swapChainImageView, nullptr);
         }
+
+        vkDestroyImageView(vkLogicalDevice, depthImageView, nullptr);
+        vmaDestroyImage(allocator, depthImage.image, depthImage.allocation);
 
         vkDestroySwapchainKHR(vkLogicalDevice, swapChain, nullptr);
     }
@@ -527,8 +594,13 @@ namespace Engine {
         renderPassInfo.renderArea.extent = swapChainExtent;
 
         const static VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        VkClearValue depthClear;
+        depthClear.depthStencil.depth = 1.f;
+
+        VkClearValue clearValues[] = {clearColor, depthClear};
+
+        renderPassInfo.clearValueCount = 2;
+        renderPassInfo.pClearValues = clearValues;
 
         vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -578,12 +650,76 @@ namespace Engine {
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
             framebufferResized = false;
+            PLOGW << "IDK but recreated";
             recreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
+
+    VkImageCreateInfo
+    VulkanHelper::image_create_info(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {
+        VkImageCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        info.pNext = nullptr;
+
+        info.imageType = VK_IMAGE_TYPE_2D;
+
+        info.format = format;
+        info.extent = extent;
+
+        info.mipLevels = 1;
+        info.arrayLayers = 1;
+        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        info.usage = usageFlags;
+
+        return info;
+    }
+
+    VkImageViewCreateInfo
+    VulkanHelper::imageview_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags) {
+        VkImageViewCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        info.pNext = nullptr;
+
+        info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        info.image = image;
+        info.format = format;
+        info.subresourceRange.baseMipLevel = 0;
+        info.subresourceRange.levelCount = 1;
+        info.subresourceRange.baseArrayLayer = 0;
+        info.subresourceRange.layerCount = 1;
+        info.subresourceRange.aspectMask = aspectFlags;
+
+        return info;
+    }
+
+    SwapChainSupportDetails VulkanHelper::querySwapChainSupport() {
+        SwapChainSupportDetails details;
+
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkPhysicalDevice, surface, &details.capabilities);
+
+        uint32_t formatCount;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, surface, &formatCount, nullptr);
+
+        if (formatCount != 0) {
+            details.formats.resize(formatCount);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, surface, &formatCount, details.formats.data());
+        }
+
+        uint32_t presentModeCount;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, surface, &presentModeCount, nullptr);
+
+        if (presentModeCount != 0) {
+            details.presentModes.resize(presentModeCount);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, surface, &presentModeCount,
+                                                      details.presentModes.data());
+        }
+
+        return details;
     }
 
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,

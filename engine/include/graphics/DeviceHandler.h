@@ -8,8 +8,6 @@ namespace Engine {
     private:
         static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 
-        static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
-
     public:
         static VkPhysicalDevice pickPhysicalDevice(VkInstance instance);
 
@@ -19,7 +17,7 @@ namespace Engine {
                             VkQueue *graphicsQueue, VkQueue *presentQueue, QueueFamilyIndices indices);
 
         static void
-        getDevices(SwapChainSupportDetails *swapChainSupport, VkPhysicalDevice *physicalDevice, VkDevice *device,
+        getDevices(VkPhysicalDevice *physicalDevice, VkDevice *device,
                    QueueFamilyIndices *familyIndices,
                    VkInstance instance,
                    std::vector<const char *> &deviceExtensions, bool enableValidationLayers,

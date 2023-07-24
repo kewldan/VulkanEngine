@@ -111,32 +111,8 @@ namespace Engine {
         return indices;
     }
 
-    SwapChainSupportDetails DeviceHandler::querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
-        SwapChainSupportDetails details;
-
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-
-        uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
-        if (formatCount != 0) {
-            details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
-        }
-
-        uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
-
-        if (presentModeCount != 0) {
-            details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-        }
-
-        return details;
-    }
-
     void
-    DeviceHandler::getDevices(SwapChainSupportDetails *swapChainSupport, VkPhysicalDevice *physicalDevice,
+    DeviceHandler::getDevices(VkPhysicalDevice *physicalDevice,
                               VkDevice *device, QueueFamilyIndices *familyIndices,
                               VkInstance instance,
                               std::vector<const char *> &deviceExtensions, bool enableValidationLayers,
@@ -148,6 +124,5 @@ namespace Engine {
 
         *device = createLogicalDevice(*physicalDevice, deviceExtensions, enableValidationLayers, validationLayers,
                                       graphicsQueue, presentQueue, *familyIndices);
-        *swapChainSupport = querySwapChainSupport(*physicalDevice, surface);
     }
 }

@@ -192,11 +192,16 @@ namespace Engine {
         createSurface();
 
         DeviceHandler::getDevices(&vkPhysicalDevice, &vkLogicalDevice, &indices, vkInstance,
-                                  std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME},
+                                  std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                                                                 VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+                                                                 VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+                                                                 VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+                                                                 VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+                                                                 VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+                                                                 VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+                                                                 VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
+                                  },
                                   enableValidationLayers, validationLayers, &graphicsQueue, &presentQueue, surface);
-
-
-        PLOGI << getMaxUsableSampleCount();
 
         DebugUtils::m_device = vkLogicalDevice;
         DebugUtils::instance = vkInstance;
@@ -206,6 +211,9 @@ namespace Engine {
         allocatorInfo.device = vkLogicalDevice;
         allocatorInfo.instance = vkInstance;
         vmaCreateAllocator(&allocatorInfo, &allocator);
+
+        msaaSamples = getMaxUsableSampleCount();
+        PLOGD << "Using MSAAx" << msaaSamples;
 
         createSwapChain();
         createImageViews();
@@ -352,7 +360,7 @@ namespace Engine {
     void VulkanHelper::createRenderPass() {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
-        colorAttachment.samples = VK_SAMPLE_COUNT_8_BIT;
+        colorAttachment.samples = msaaSamples;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -362,7 +370,7 @@ namespace Engine {
 
         VkAttachmentDescription depthAttachment{};
         depthAttachment.format = VK_FORMAT_D32_SFLOAT;
-        depthAttachment.samples = VK_SAMPLE_COUNT_8_BIT;
+        depthAttachment.samples = msaaSamples;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -717,7 +725,7 @@ namespace Engine {
 
         colorImage = createImage(swapChainExtent.width, swapChainExtent.height, colorFormat, VK_IMAGE_TILING_OPTIMAL,
                                  VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                 VK_SAMPLE_COUNT_8_BIT, VMA_MEMORY_USAGE_AUTO);
+                                 msaaSamples, VMA_MEMORY_USAGE_AUTO);
         colorImageView = createImageView(colorImage.image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 
@@ -761,7 +769,7 @@ namespace Engine {
     void VulkanHelper::createDepthResource() {
         depthImage = createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_D32_SFLOAT,
                                  VK_IMAGE_TILING_OPTIMAL,
-                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_SAMPLE_COUNT_8_BIT,
+                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, msaaSamples,
                                  VMA_MEMORY_USAGE_GPU_ONLY);
         depthImageView = createImageView(depthImage.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     }

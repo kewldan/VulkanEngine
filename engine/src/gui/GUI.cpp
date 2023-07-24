@@ -11,7 +11,8 @@ namespace Engine {
 
     void GUI::init(GLFWwindow *window, VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device,
                    VkQueue graphicsQueue,
-                   VkRenderPass renderPass, VkCommandPool commandPool, VkCommandBuffer commandBuffer) {
+                   VkRenderPass renderPass, VkCommandPool commandPool, VkCommandBuffer commandBuffer,
+                   VkSampleCountFlagBits sampleCount) {
         VkDescriptorPoolSize pool_sizes[] =
                 {
                         {VK_DESCRIPTOR_TYPE_SAMPLER,                1000},
@@ -50,7 +51,7 @@ namespace Engine {
         init_info.DescriptorPool = imguiPool;
         init_info.MinImageCount = 3;
         init_info.ImageCount = 3;
-        init_info.MSAASamples = VK_SAMPLE_COUNT_8_BIT;
+        init_info.MSAASamples = sampleCount;
 
         ImGui_ImplVulkan_Init(&init_info, renderPass);
 

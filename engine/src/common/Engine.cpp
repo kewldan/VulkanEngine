@@ -44,12 +44,13 @@ namespace Engine {
                                    &vkHandler.swapChainExtent,
                                    vkHandler.descriptorPool,
                                    vkHandler.allocator,
+                                   vkHandler.msaaSamples,
                                    &vkHandler.currentFrame
                            });
 
         GUI::init(application.getWindow()->getHandle(), vkInstance, vkHandler.vkPhysicalDevice,
                   vkHandler.vkLogicalDevice, vkHandler.graphicsQueue, vkHandler.renderPass, vkHandler.commandPool,
-                  vkHandler.commandBuffers[0]);
+                  vkHandler.commandBuffers[0], vkHandler.msaaSamples);
 
         uint64_t applicationInitTime = time();
         application.init();

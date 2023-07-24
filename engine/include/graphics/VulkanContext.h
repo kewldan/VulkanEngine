@@ -13,6 +13,7 @@ namespace Engine {
         VkExtent2D *swapChainExtent;
         VkDescriptorPool descriptorPool;
         VmaAllocator allocator;
+        VkSampleCountFlagBits msaaSamples;
         int *currentFrame;
     };
 }

@@ -9,7 +9,8 @@ namespace Engine {
     public:
         static void init(GLFWwindow *window, VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device,
                          VkQueue graphicsQueue,
-                         VkRenderPass renderPass, VkCommandPool commandPool, VkCommandBuffer commandBuffer);
+                         VkRenderPass renderPass, VkCommandPool commandPool, VkCommandBuffer commandBuffer,
+                         VkSampleCountFlagBits sampleCount);
 
         static void begin();
 

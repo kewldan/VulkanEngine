@@ -121,6 +121,7 @@ namespace Engine {
         std::vector<VkFence> inFlightFences;
         SwapChainSupportDetails swapChainSupport;
         VmaAllocator allocator{};
+        VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
         VkImageView depthImageView{};
         AllocatedImage depthImage{};

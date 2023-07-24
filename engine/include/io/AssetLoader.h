@@ -7,21 +7,54 @@
 #include <future>
 
 namespace Engine {
-    struct AssetLoadLayout {
+    struct AssetTask {
         std::function<void()> load{};
-        std::function<void()> upload{};
-        std::thread loadingThread{};
-
-        AssetLoadLayout();
     };
+
+    struct TaskQueue {
+        std::vector<AssetTask *> tasks;
+        std::thread worker;
+
+        void execute();
+    };
+
+    template<int Count>
+    struct TaskSolver {
+        TaskQueue queues[Count];
+        int index = 0;
+
+        void addTask(AssetTask *task);
+
+        void execute();
+    };
+
+    template<int Count>
+    void TaskSolver<Count>::execute() {
+        for (int i = 0; i < Count; i++) {
+            queues[i].execute();
+        }
+
+        for (int i = 0; i < Count; i++) {
+            queues[i].worker.join();
+        }
+    }
+
+    template<int Count>
+    void TaskSolver<Count>::addTask(AssetTask *task) {
+        queues[index].tasks.push_back(task);
+        if (++index == Count) {
+            index = 0;
+        }
+    }
 
     class AssetLoader {
     private:
-        static std::vector<AssetLoadLayout *> queue;
-    public:
+        static TaskSolver<4> solver;
+
         static void loadMeshes(const char *filename, Mesh **meshes, int *count);
 
-        static VkShaderModule loadShader(VkDevice device, const char *filename);
+    public:
+        static void loadShader(VkDevice device, VkShaderModule *shaderModule, const char *filename);
 
         static void loadGameObject(VmaAllocator allocator, GameObject &gameObject, const char *filename);
 

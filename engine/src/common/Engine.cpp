@@ -52,15 +52,19 @@ namespace Engine {
                   vkHandler.vkLogicalDevice, vkHandler.graphicsQueue, vkHandler.renderPass, vkHandler.commandPool,
                   vkHandler.commandBuffers[0], vkHandler.msaaSamples);
 
-        uint64_t applicationInitTime = time();
-        application.init();
-        PLOGD << "Application init took: " << floor(((double) time() - (double) applicationInitTime) * 0.001) << "ms";
+        uint64_t applicationPreInitTime = time();
+        application.preInit();
+        PLOGD << "Application pre-init took: " << floor(((double) time() - (double) applicationPreInitTime) * 0.001)
+              << "ms";
 
         uint64_t applicationLoadTime = time();
         application.loadAssets();
         PLOGD << "Application assets load took: " << floor(((double) time() - (double) applicationLoadTime) * 0.001)
               << "ms";
 
+        uint64_t applicationInitTime = time();
+        application.init();
+        PLOGD << "Application init took: " << floor(((double) time() - (double) applicationInitTime) * 0.001) << "ms";
 
         PLOGD << "Engine init took: " << floor(((double) time() - (double) engineInitTime) * 0.001) << "ms";
 

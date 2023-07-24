@@ -6,10 +6,10 @@
 #include "plog/Log.h"
 
 namespace Engine {
-
     void AssetLoader::loadMeshes(const char *filename, Mesh **meshes, int *count) {
         assert(filename != nullptr);
         assert(count != nullptr);
+        assert(meshes != nullptr);
 
         objl::Loader Loader;
         bool loadout = Loader.LoadFile(filename);
@@ -38,51 +38,51 @@ namespace Engine {
         }
     }
 
-    VkShaderModule AssetLoader::loadShader(VkDevice device, const char *filename) {
+    void AssetLoader::loadShader(VkDevice device, VkShaderModule *shaderModule, const char *filename) {
         assert(device != VK_NULL_HANDLE);
         assert(filename != nullptr);
+        assert(shaderModule != nullptr);
 
-        size_t length;
-        auto code = Filesystem::readFile(filename, &length);
+        auto *task = new AssetTask;
+        task->load = [device, filename, shaderModule]() { // Filename is not reference because filename is pointer and should be copy
+            size_t length;
+            auto code = Filesystem::readFile(filename, &length);
 
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = length;
-        createInfo.pCode = reinterpret_cast<const uint32_t *>(code);
+            VkShaderModuleCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            createInfo.codeSize = length;
+            createInfo.pCode = reinterpret_cast<const uint32_t *>(code);
 
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create shader module!");
-        }
-
-        return shaderModule;
+            if (vkCreateShaderModule(device, &createInfo, nullptr, shaderModule) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create shader module!");
+            }
+        };
+        solver.addTask(task);
     }
 
     void AssetLoader::loadGameObject(VmaAllocator allocator, GameObject &gameObject, const char *filename) {
-        auto *layout = new AssetLoadLayout;
-        layout->load = [filename, &gameObject]() { // Filename is not reference because filename is pointer and should be copy
+        assert(allocator != nullptr);
+        assert(filename != nullptr);
+
+        auto *layout = new AssetTask;
+        layout->load = [filename, &gameObject, allocator]() { // Filename is not reference because filename is pointer and should be copy
             loadMeshes(filename, &gameObject.meshes, &gameObject.meshCount);
-        };
-        layout->upload = [&gameObject, allocator]() { // Allocator is not reference because allocator is pointer to allocator_t
             gameObject.upload(allocator);
         };
-        queue.push_back(layout);
+        solver.addTask(layout);
     }
 
     void AssetLoader::asyncLoad() {
-        for (auto *layout: queue) {
-            layout->loadingThread = std::thread(layout->load);
-        }
-
-        for (auto *layout: queue) {
-            layout->loadingThread.join();
-            layout->upload();
-        }
-
-        queue.clear();
+        solver.execute();
     }
 
-    AssetLoadLayout::AssetLoadLayout() = default;
+    TaskSolver<4> AssetLoader::solver{};
 
-    std::vector<AssetLoadLayout *> AssetLoader::queue{};
+    void TaskQueue::execute() {
+        worker = std::thread([this]() {
+            for (auto *task: tasks) {
+                task->load();
+            }
+        });
+    }
 }

@@ -183,9 +183,6 @@ void Game::gui() {
 }
 
 void Game::createGraphicsPipeline() {
-    VkShaderModule vertShaderModule = Engine::AssetLoader::loadShader(context.device, "./data/shaders/vert.spv");
-    VkShaderModule fragShaderModule = Engine::AssetLoader::loadShader(context.device, "./data/shaders/frag.spv");
-
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -319,5 +316,13 @@ void Game::createPipelineLayout() {
 void Game::loadAssets() {
     Engine::AssetLoader::loadGameObject(context.allocator, cubeGameObject, "./data/meshes/cube.obj");
     Engine::AssetLoader::loadGameObject(context.allocator, planeGameObject, "./data/meshes/plane.obj");
+
+    Engine::AssetLoader::loadShader(context.device, &vertShaderModule, "./data/shaders/vert.spv");
+    Engine::AssetLoader::loadShader(context.device, &fragShaderModule, "./data/shaders/frag.spv");
+
     Engine::AssetLoader::asyncLoad();
+}
+
+void Game::preInit() {
+
 }

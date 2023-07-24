@@ -18,6 +18,8 @@ namespace Engine {
 
         virtual void loadAssets() = 0;
 
+        virtual void preInit() = 0;
+
         virtual void init() = 0;
 
         virtual void

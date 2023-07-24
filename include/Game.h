@@ -27,6 +27,7 @@ private:
     Engine::Camera3D camera;
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
     Engine::GameWorld world;
+    VkShaderModule vertShaderModule, fragShaderModule;
 
     void createGraphicsPipeline();
 
@@ -36,6 +37,8 @@ public:
     void createWindow() override;
 
     void loadAssets() override;
+
+    void preInit() override;
 
     void init() override;
 

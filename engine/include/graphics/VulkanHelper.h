@@ -1,10 +1,11 @@
 #pragma once
 
-#include "vulkan/vulkan.hpp"
+
 #include <vector>
 #include <memory>
 #include <optional>
 #include "GLFW/glfw3.h"
+#include <vulkan/vulkan.h>
 #include "vk_mem_alloc.h"
 
 namespace Engine {
@@ -94,6 +95,8 @@ namespace Engine {
 
         void createDescriptorPool();
 
+        void createTextureImage();
+
         static VkImageCreateInfo image_create_info(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
 
         static VkImageViewCreateInfo
@@ -112,9 +115,9 @@ namespace Engine {
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
         SwapChainSupportDetails swapChainSupport;
-        VmaAllocator allocator;
-        VkImageView depthImageView;
-        AllocatedImage depthImage;
+        VmaAllocator allocator{};
+        VkImageView depthImageView{};
+        AllocatedImage depthImage{};
         VkFormat depthFormat;
 
         VkDescriptorPool descriptorPool{};

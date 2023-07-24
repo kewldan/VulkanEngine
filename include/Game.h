@@ -18,13 +18,13 @@ struct Uniform_ModelData {
 
 class Game : public Engine::Application {
 private:
-    std::unique_ptr<Engine::GameObject> cubeGameObject, planeGameObject;
+    Engine::GameObject cubeGameObject, planeGameObject;
     VkPipelineLayout pipelineLayout{};
     VkPipeline graphicsPipeline{};
-    std::unique_ptr<Engine::UniformBuffer<Uniform_CameraData>> uniformCamera;
-    std::unique_ptr<Engine::Camera3D> camera;
+    Engine::UniformBuffer<Uniform_CameraData> uniformCamera;
+    Engine::Camera3D camera;
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
-    std::unique_ptr<Engine::GameWorld> world;
+    Engine::GameWorld world;
 
     void createGraphicsPipeline();
 
@@ -32,6 +32,8 @@ private:
 
 public:
     void createWindow() override;
+
+    void loadAssets() override;
 
     void init() override;
 

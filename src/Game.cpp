@@ -1,44 +1,37 @@
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
+#include <thread>
 #include "Game.h"
 #include "imgui.h"
-#include "io/Assets.h"
+#include "io/AssetLoader.h"
 #include "graphics/BufferHandler.h"
 #include "plog/Log.h"
+#include "common/Engine.h"
 
 void Game::init() {
     Engine::InputManager::setRawInput(window->getHandle(), true);
     Engine::InputManager::setLockCursor(window->getHandle(), true);
     Engine::InputManager::registerCallbacks(window->getHandle());
 
-    Engine::InputManager::keyPressListeners.emplace_back([=](int key) {
+    Engine::InputManager::keyPressListeners.emplace_back([=, this](int key) {
         if (key == GLFW_KEY_ESCAPE) {
             Engine::InputManager::setLockCursor(window->getHandle(), !Engine::InputManager::lockCursor);
         }
     });
 
-    world = std::make_unique<Engine::GameWorld>();
-    world->init();
+    world.init();
 
-    cubeGameObject = std::make_unique<Engine::GameObject>();
-    cubeGameObject->meshes = Engine::Assets::loadMeshes("cube.obj", &cubeGameObject->meshCount);
-    cubeGameObject->upload(context.allocator);
+    planeGameObject.scale = glm::vec3(100.f, 1.f, 100.f);
 
-    planeGameObject = std::make_unique<Engine::GameObject>();
-    planeGameObject->meshes = Engine::Assets::loadMeshes("plane.obj", &planeGameObject->meshCount);
-    planeGameObject->upload(context.allocator);
+    uniformCamera.init(context.physicalDevice,
+                       context.device, context.descriptorPool,
+                       VK_SHADER_STAGE_VERTEX_BIT, 0);
 
-    planeGameObject->scale = glm::vec3(100.f, 1.f, 100.f);
+    descriptorSetLayouts.push_back(uniformCamera.layout);
 
-    uniformCamera = std::make_unique<Engine::UniformBuffer<Uniform_CameraData>>(context.physicalDevice,
-                                                                                context.device, context.descriptorPool,
-                                                                                VK_SHADER_STAGE_VERTEX_BIT, 0);
-    descriptorSetLayouts.push_back(uniformCamera->layout);
-
-    camera = std::make_unique<Engine::Camera3D>();
-    camera->position = glm::vec3(2.f, 2.f, 2.f);
-    camera->rotation = glm::vec3(0.6f, -0.8f, 0.f);
+    camera.position = glm::vec3(2.f, 2.f, 2.f);
+    camera.rotation = glm::vec3(0.6f, -0.8f, 0.f);
 
     createPipelineLayout();
     createGraphicsPipeline();
@@ -46,43 +39,43 @@ void Game::init() {
 
 void Game::update() {
     glm::vec2 delta = Engine::InputManager::getCursorDelta(window->getHandle());
-    camera->rotation.x += delta.y * 0.004f;
-    camera->rotation.y += delta.x * 0.004f;
-    camera->rotation.x = std::clamp(camera->rotation.x, -1.5f, 1.5f);
+    camera.rotation.x += delta.y * 0.004f;
+    camera.rotation.y += delta.x * 0.004f;
+    camera.rotation.x = std::clamp(camera.rotation.x, -1.5f, 1.5f);
 
     glm::vec3 vel(0.f);
     float speed = 3.5f;
     float crouch = ImGui::GetIO().DeltaTime;
     if (glfwGetKey(window->getHandle(), GLFW_KEY_W)) {
-        vel.x -= std::cos(camera->rotation.y + 1.57f) * speed * crouch;
-        vel.y -= std::sin(camera->rotation.x) * speed * crouch;
-        vel.z -= std::sin(camera->rotation.y + 1.57f) * speed * crouch;
+        vel.x -= std::cos(camera.rotation.y + 1.57f) * speed * crouch;
+        vel.y -= std::sin(camera.rotation.x) * speed * crouch;
+        vel.z -= std::sin(camera.rotation.y + 1.57f) * speed * crouch;
     } else if (glfwGetKey(window->getHandle(), GLFW_KEY_S)) {
-        vel.x += std::cos(camera->rotation.y + 1.57f) * speed * crouch;
-        vel.y += std::sin(camera->rotation.x) * speed * crouch;
-        vel.z += std::sin(camera->rotation.y + 1.57f) * speed * crouch;
+        vel.x += std::cos(camera.rotation.y + 1.57f) * speed * crouch;
+        vel.y += std::sin(camera.rotation.x) * speed * crouch;
+        vel.z += std::sin(camera.rotation.y + 1.57f) * speed * crouch;
     }
 
     if (glfwGetKey(window->getHandle(), GLFW_KEY_A)) {
-        vel.x -= std::cos(camera->rotation.y) * speed * crouch;
-        vel.z -= std::sin(camera->rotation.y) * speed * crouch;
+        vel.x -= std::cos(camera.rotation.y) * speed * crouch;
+        vel.z -= std::sin(camera.rotation.y) * speed * crouch;
     } else if (glfwGetKey(window->getHandle(), GLFW_KEY_D)) {
-        vel.x += std::cos(camera->rotation.y) * speed * crouch;
-        vel.z += std::sin(camera->rotation.y) * speed * crouch;
+        vel.x += std::cos(camera.rotation.y) * speed * crouch;
+        vel.z += std::sin(camera.rotation.y) * speed * crouch;
     }
-    camera->position += vel;
+    camera.position += vel;
 
-    camera->update((float) context.swapChainExtent->width, (float) context.swapChainExtent->height);
+    camera.update((float) context.swapChainExtent->width, (float) context.swapChainExtent->height);
 
-    uniformCamera->view = camera->getView();
-    uniformCamera->proj = camera->getProjection();
-    uniformCamera->proj[1][1] *= -1;
+    uniformCamera.view = camera.getView();
+    uniformCamera.proj = camera.getProjection();
+    uniformCamera.proj[1][1] *= -1;
 
-    uniformCamera->upload(*context.currentFrame);
+    uniformCamera.upload(*context.currentFrame);
 }
 
 void Game::cleanup() {
-    world->cleanup();
+    world.cleanup();
     vkDestroyPipelineLayout(context.device, pipelineLayout, nullptr);
     vkDestroyPipeline(context.device, graphicsPipeline, nullptr);
 
@@ -90,14 +83,14 @@ void Game::cleanup() {
         vkDestroyDescriptorSetLayout(context.device, layout, nullptr);
     }
 
-    uniformCamera->cleanup(context.device);
-    cubeGameObject->cleanup(context.allocator);
-    planeGameObject->cleanup(context.allocator);
+    uniformCamera.cleanup(context.device);
+    cubeGameObject.cleanup(context.allocator);
+    planeGameObject.cleanup(context.allocator);
     window->cleanup();
 }
 
 void Game::createWindow() {
-    window = std::make_unique<Engine::Window>("VulkanHelper game", 800, 600);
+    window = std::make_unique<Engine::Window>("VulkanHelper game", 1280, 720);
 }
 
 void Game::render(VkCommandBuffer commandBuffer) {
@@ -119,45 +112,46 @@ void Game::render(VkCommandBuffer commandBuffer) {
 
     static Uniform_ModelData data{};
 
-    data.model = cubeGameObject->getModel();
-    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData), &data);
-    for (int i = 0; i < cubeGameObject->meshCount; i++) {
-        VkBuffer vertexBuffers[] = {cubeGameObject->meshes[i].vertexBuffer.buffer};
+    data.model = cubeGameObject.getModel();
+    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData),
+                       &data);
+    for (int i = 0; i < cubeGameObject.meshCount; i++) {
+        VkBuffer vertexBuffers[] = {cubeGameObject.meshes[i].vertexBuffer.buffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, cubeGameObject->meshes[i].indexBuffer.buffer, 0,
+        vkCmdBindIndexBuffer(commandBuffer, cubeGameObject.meshes[i].indexBuffer.buffer, 0,
                              VK_INDEX_TYPE_UINT16);
         VkDescriptorSet sets[] = {
-                uniformCamera->descriptorSets[*context.currentFrame]
+                uniformCamera.descriptorSets[*context.currentFrame]
         };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelineLayout, 0, 1,
                                 sets, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, cubeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, cubeGameObject.meshes[i].indexCount, 1, 0, 0, 0);
     }
 
-    data.model = planeGameObject->getModel();
-    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData), &data);
-    for (int i = 0; i < planeGameObject->meshCount; i++) {
-        VkBuffer vertexBuffers[] = {planeGameObject->meshes[i].vertexBuffer.buffer};
+
+    data.model = planeGameObject.getModel();
+    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData),
+                       &data);
+    for (int i = 0; i < planeGameObject.meshCount; i++) {
+        VkBuffer vertexBuffers[] = {planeGameObject.meshes[i].vertexBuffer.buffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, planeGameObject->meshes[i].indexBuffer.buffer, 0,
+        vkCmdBindIndexBuffer(commandBuffer, planeGameObject.meshes[i].indexBuffer.buffer, 0,
                              VK_INDEX_TYPE_UINT16);
 
         VkDescriptorSet sets[] = {
-                uniformCamera->descriptorSets[*context.currentFrame]
+                uniformCamera.descriptorSets[*context.currentFrame]
         };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelineLayout, 0, 1,
                                 sets, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, planeGameObject->meshes[i].indexCount, 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, planeGameObject.meshes[i].indexCount, 1, 0, 0, 0);
     }
 }
 
 void Game::gui() {
-    ImGui::ShowDemoWindow();
-
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Once);
     ImGui::SetNextWindowBgAlpha(0.f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
@@ -166,16 +160,19 @@ void Game::gui() {
                      ImGuiWindowFlags_NoFocusOnAppearing |
                      ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove)) {
         ImGui::Text("FPS: %.0f", ImGui::GetIO().Framerate);
-        ImGui::Text("Facing: %.2f %.2f", camera->rotation.x, camera->rotation.y);
-        ImGui::Text("Position: %.1f %.1f %.1f", camera->position.x, camera->position.y, camera->position.z);
+        ImGui::Text("CPU: %.1fms", (double) Engine::Engine::data.lastCpuThread * 0.001);
+        ImGui::Text("GPU: %.1fms", (double) Engine::Engine::data.lastGpuThread * 0.001);
+        ImGui::NewLine();
+        ImGui::Text("Facing: %.2f %.2f", camera.rotation.x, camera.rotation.y);
+        ImGui::Text("Position: %.1f %.1f %.1f", camera.position.x, camera.position.y, camera.position.z);
     }
     ImGui::End();
     ImGui::PopStyleVar();
 }
 
 void Game::createGraphicsPipeline() {
-    VkShaderModule vertShaderModule = Engine::Assets::loadShader(context.device, "vert.spv");
-    VkShaderModule fragShaderModule = Engine::Assets::loadShader(context.device, "frag.spv");
+    VkShaderModule vertShaderModule = Engine::AssetLoader::loadShader(context.device, "./data/shaders/vert.spv");
+    VkShaderModule fragShaderModule = Engine::AssetLoader::loadShader(context.device, "./data/shaders/frag.spv");
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -305,4 +302,10 @@ void Game::createPipelineLayout() {
     if (vkCreatePipelineLayout(context.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");
     }
+}
+
+void Game::loadAssets() {
+    Engine::AssetLoader::loadGameObject(context.allocator, cubeGameObject, "./data/meshes/cube.obj");
+    Engine::AssetLoader::loadGameObject(context.allocator, planeGameObject, "./data/meshes/plane.obj");
+    Engine::AssetLoader::asyncLoad();
 }

@@ -53,28 +53,50 @@ namespace Engine {
 
         uint64_t applicationInitTime = time();
         application.init();
+        PLOGD << "Application init took: " << floor(((double) time() - (double) applicationInitTime) * 0.001) << "ms";
 
-        PLOGD << "Engine init took: " << time() - engineInitTime << "ms";
-        PLOGD << "Application init took: " << time() - applicationInitTime << "ms";
+        uint64_t applicationLoadTime = time();
+        application.loadAssets();
+        PLOGD << "Application assets load took: " << floor(((double) time() - (double) applicationLoadTime) * 0.001)
+              << "ms";
+
+
+        PLOGD << "Engine init took: " << floor(((double) time() - (double) engineInitTime) * 0.001) << "ms";
+
+        renderThread = std::thread([&application, &vkHandler]() {
+            while (!application.shouldClose()) {
+                if (smphSignalMainToThread.try_acquire_for(std::chrono::milliseconds(100))) {
+                    uint64_t t = time();
+                    int currentFrame = vkHandler.syncNewFrame();
+
+                    application.render(vkHandler.commandBuffers[currentFrame]);
+
+                    GUI::begin();
+                    application.gui();
+                    GUI::end();
+                    GUI::render(vkHandler.commandBuffers[currentFrame]);
+
+                    vkHandler.endFrame();
+                    data.lastGpuThread = time() - t;
+                    smphSignalThreadToMain.release();
+                }
+            }
+        });
 
         while (!application.shouldClose()) {
+            smphSignalMainToThread.release();
+            uint64_t t = time();
+
             application.update();
-
-            int currentFrame = vkHandler.syncNewFrame();
-
-            application.render(vkHandler.commandBuffers[currentFrame]);
-
-            GUI::begin();
-            application.gui();
-            GUI::end();
-            GUI::render(vkHandler.commandBuffers[currentFrame]);
-
-            vkHandler.endFrame();
-
             glfwPollEvents();
+
+            data.lastCpuThread = time() - t;
+            smphSignalThreadToMain.acquire();
         }
 
         vkHandler.idle();
+
+        renderThread.join();
 
         application.cleanup();
         vkHandler.cleanup();
@@ -83,7 +105,12 @@ namespace Engine {
     }
 
     uint64_t Engine::time() {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(
+        return std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count();
     }
+
+    std::binary_semaphore Engine::smphSignalThreadToMain = std::binary_semaphore(0);
+    std::binary_semaphore Engine::smphSignalMainToThread = std::binary_semaphore(0);
+    std::thread Engine::renderThread{};
+    EngineData Engine::data{};
 }

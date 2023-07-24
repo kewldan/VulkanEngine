@@ -1,8 +1,11 @@
 #include "input/InputManager.h"
+#include "imgui_impl_glfw.h"
 
 namespace Engine {
     void InputManager::registerCallbacks(GLFWwindow *window) {
-        glfwSetKeyCallback(window, [](GLFWwindow *, int key, int scancode, int action, int mods) {
+        glfwSetKeyCallback(window, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
+            ImGui_ImplGlfw_KeyCallback(win, key, scancode, action, mods);
+
             if (action == GLFW_PRESS) {
                 for (const std::function<void(int)> &func: keyPressListeners) {
                     func(key);
@@ -14,7 +17,9 @@ namespace Engine {
             }
         });
 
-        glfwSetMouseButtonCallback(window, [](GLFWwindow *, int button, int action, int mods) {
+        glfwSetMouseButtonCallback(window, [](GLFWwindow *win, int button, int action, int mods) {
+            ImGui_ImplGlfw_MouseButtonCallback(win, button, action, mods);
+
             if (action == GLFW_PRESS) {
                 for (const std::function<void(int)> &func: mousePressListeners) {
                     func(button);
@@ -26,7 +31,9 @@ namespace Engine {
             }
         });
 
-        glfwSetCursorPosCallback(window, [](GLFWwindow *, double x, double y) {
+        glfwSetCursorPosCallback(window, [](GLFWwindow *win, double x, double y) {
+            ImGui_ImplGlfw_CursorPosCallback(win, x, y);
+
             mousePosition.x = (float) x;
             mousePosition.y = (float) y;
         });

@@ -1,7 +1,8 @@
 #include <xutility>
 #include "gui/GUI.h"
 #include "plog/Log.h"
-#include "graphics//DebugUtils.h"
+#include "graphics/DebugUtils.h"
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
@@ -33,14 +34,13 @@ namespace Engine {
         pool_info.poolSizeCount = std::size(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
 
-
         vkCreateDescriptorPool(device, &pool_info, nullptr, &imguiPool);
 
         DebugUtils::setObjectName(imguiPool, "ImGui descriptor pool");
 
         ImGui::CreateContext();
 
-        ImGui_ImplGlfw_InitForVulkan(window, true);
+        ImGui_ImplGlfw_InitForVulkan(window, false);
 
         ImGui_ImplVulkan_InitInfo init_info = {};
         init_info.Instance = instance;
@@ -77,6 +77,8 @@ namespace Engine {
         err = vkDeviceWaitIdle(device);
         PLOGF_IF(err != VK_SUCCESS) << err;
         ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+        ImGui::GetIO().IniFilename = nullptr;
     }
 
     void GUI::render(VkCommandBuffer buffer) {

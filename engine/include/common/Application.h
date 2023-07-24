@@ -16,6 +16,8 @@ namespace Engine {
 
         virtual void createWindow() = 0;
 
+        virtual void loadAssets() = 0;
+
         virtual void init() = 0;
 
         virtual void

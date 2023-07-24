@@ -3,6 +3,7 @@
 #include <vector>
 #include "graphics/VulkanHelper.h"
 #include "graphics/BufferHandler.h"
+#include <stdexcept>
 
 namespace Engine {
     template<class T>
@@ -22,13 +23,37 @@ namespace Engine {
         std::vector<VkDescriptorSet> descriptorSets;
         VkDescriptorSetLayout layout{};
 
-        UniformBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDescriptorPool descriptorPool,
-                      VkShaderStageFlagBits shaderStage, int binding);
+        UniformBuffer() = default;
+
+        void init(VkPhysicalDevice physicalDevice, VkDevice device, VkDescriptorPool descriptorPool,
+                  VkShaderStageFlagBits shaderStage, int binding);
 
         void upload(int currentFrame);
 
         void cleanup(VkDevice device);
     };
+
+    template<class T>
+    void UniformBuffer<T>::init(VkPhysicalDevice physicalDevice, VkDevice device, VkDescriptorPool descriptorPool,
+                                VkShaderStageFlagBits shaderStage, int binding) {
+        VkDeviceSize bufferSize = sizeof(T);
+
+        uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+        for (size_t i = 0; i < 2; i++) {
+            BufferHandler::createBuffer(physicalDevice, device, bufferSize,
+                                        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                        uniformBuffers[i],
+                                        uniformBuffersMemory[i]);
+
+            vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+        }
+
+        descriptorSets = getDescriptorSet(device, descriptorPool, shaderStage, binding);
+    }
 
     template<class T>
     std::vector<VkDescriptorSet> UniformBuffer<T>::getDescriptorSet(VkDevice device, VkDescriptorPool descriptorPool,
@@ -90,28 +115,6 @@ namespace Engine {
         }
 
         return descriptorSetLayout;
-    }
-
-    template<class T>
-    UniformBuffer<T>::UniformBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDescriptorPool descriptorPool,
-                                    VkShaderStageFlagBits shaderStage, int binding) {
-        VkDeviceSize bufferSize = sizeof(T);
-
-        uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-        for (size_t i = 0; i < 2; i++) {
-            BufferHandler::createBuffer(physicalDevice, device, bufferSize,
-                                        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                        uniformBuffers[i],
-                                        uniformBuffersMemory[i]);
-
-            vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
-        }
-
-        descriptorSets = getDescriptorSet(device, descriptorPool, shaderStage, binding);
     }
 
     template<class T>

@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <cassert>
 #include <algorithm>
-#include "io/Filesystem.h"
 
 #include "graphics/VulkanHelper.h"
 #include "graphics/DeviceHandler.h"
@@ -17,9 +16,13 @@
 
 #include "vk_mem_alloc.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include <stb_image.h>
+
 namespace Engine {
     bool VulkanHelper::checkValidationLayers() {
-        uint32_t layerCount;
+        uint32_t layerCount = 0;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
         std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -206,6 +209,7 @@ namespace Engine {
         createRenderPass();
         createFramebuffers();
         createCommandPool();
+        createTextureImage();
         createDescriptorPool();
         createCommandBuffers();
         createSyncObjects();
@@ -650,7 +654,6 @@ namespace Engine {
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
             framebufferResized = false;
-            PLOGW << "IDK but recreated";
             recreateSwapChain();
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
@@ -720,6 +723,52 @@ namespace Engine {
         }
 
         return details;
+    }
+
+    void VulkanHelper::createTextureImage() {
+        int w, h, c;
+        stbi_uc *pixels = stbi_load("data/textures/test.png", &w, &h, &c, STBI_rgb_alpha);
+
+        AllocatedBuffer imageBuffer{};
+
+        VkBufferCreateInfo bufferInfo = {};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = w * h * 4;
+        bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+        VmaAllocationCreateInfo vmaallocInfo = {};
+        vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+        vmaCreateBuffer(allocator, &bufferInfo, &vmaallocInfo,
+                        &imageBuffer.buffer,
+                        &imageBuffer.allocation,
+                        nullptr);
+
+        void *data;
+        vmaMapMemory(allocator, imageBuffer.allocation, &data);
+        memcpy(data, pixels, w * h * 4);
+        vmaUnmapMemory(allocator, imageBuffer.allocation);
+        stbi_image_free(pixels);
+
+        AllocatedImage image{};
+
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = static_cast<uint32_t>(w);
+        imageInfo.extent.height = static_cast<uint32_t>(h);
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.flags = 0; // Optional
+        vmaCreateImage(allocator, &imageInfo, &vmaallocInfo, &image.image, &image.allocation, nullptr);
+        vmaBindImageMemory(allocator, image.allocation, image.image);
     }
 
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,

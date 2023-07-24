@@ -700,14 +700,11 @@ namespace Engine {
 
         VmaAllocationCreateInfo allocationInfo = {};
         allocationInfo.usage = memoryUsage;
-        // dimg_allocinfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         if (vmaCreateImage(allocator, &imageInfo, &allocationInfo, &img.image, &img.allocation, nullptr) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create image!");
         }
-
-        vmaBindImageMemory(allocator, img.allocation, img.image);
 
         return img;
     }

@@ -75,7 +75,7 @@ namespace Engine {
 
         [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
-        SwapChainSupportDetails querySwapChainSupport();
+        [[nodiscard]] SwapChainSupportDetails querySwapChainSupport() const;
 
         void createImageViews();
 
@@ -95,12 +95,17 @@ namespace Engine {
 
         void createDescriptorPool();
 
-        void createTextureImage();
+        void createColorResource();
 
-        static VkImageCreateInfo image_create_info(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
+        [[nodiscard]] VkSampleCountFlagBits getMaxUsableSampleCount() const;
 
-        static VkImageViewCreateInfo
-        imageview_create_info(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
+        VkImageView
+        createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const;
+
+        [[nodiscard]] AllocatedImage
+        createImage(int w, int h, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usageBits,
+                    VkSampleCountFlagBits sampleBits,
+                    VmaMemoryUsage memoryUsage) const;
 
         VkInstance vkInstance{};
         VkDebugUtilsMessengerEXT debugMessenger{};
@@ -116,9 +121,12 @@ namespace Engine {
         std::vector<VkFence> inFlightFences;
         SwapChainSupportDetails swapChainSupport;
         VmaAllocator allocator{};
+
         VkImageView depthImageView{};
         AllocatedImage depthImage{};
-        VkFormat depthFormat;
+
+        AllocatedImage colorImage{};
+        VkImageView colorImageView{};
 
         VkDescriptorPool descriptorPool{};
 
@@ -147,5 +155,7 @@ namespace Engine {
         void cleanup();
 
         void init(std::vector<const char *> &extensions);
+
+        void createDepthResource();
     };
 }

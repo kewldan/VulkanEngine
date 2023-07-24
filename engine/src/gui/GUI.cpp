@@ -50,7 +50,7 @@ namespace Engine {
         init_info.DescriptorPool = imguiPool;
         init_info.MinImageCount = 3;
         init_info.ImageCount = 3;
-        init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+        init_info.MSAASamples = VK_SAMPLE_COUNT_8_BIT;
 
         ImGui_ImplVulkan_Init(&init_info, renderPass);
 

@@ -60,10 +60,10 @@ namespace Engine {
 
     void AssetLoader::loadGameObject(VmaAllocator allocator, GameObject &gameObject, const char *filename) {
         auto *layout = new AssetLoadLayout;
-        layout->load = [filename, &gameObject]() {
+        layout->load = [filename, &gameObject]() { // Filename is not reference because filename is pointer and should be copy
             loadMeshes(filename, &gameObject.meshes, &gameObject.meshCount);
         };
-        layout->upload = [&gameObject, &allocator]() {
+        layout->upload = [&gameObject, allocator]() { // Allocator is not reference because allocator is pointer to allocator_t
             gameObject.upload(allocator);
         };
         queue.push_back(layout);

@@ -10,9 +10,11 @@
 struct Uniform_CameraData {
     glm::mat4 view;
     glm::mat4 proj;
+    glm::vec4 position;
 };
 
 struct Uniform_ModelData {
+    glm::vec4 color;
     glm::mat4 model;
 };
 

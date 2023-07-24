@@ -21,8 +21,8 @@ namespace Engine {
         uint16_t *indices = nullptr;
         int indexCount = 0;
         int vertexCount = 0;
-        AllocatedBuffer vertexBuffer;
-        AllocatedBuffer indexBuffer;
+        AllocatedBuffer vertexBuffer{};
+        AllocatedBuffer indexBuffer{};
 
         Mesh();
 

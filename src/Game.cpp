@@ -1,4 +1,3 @@
-#include <vector>
 #include <stdexcept>
 #include <algorithm>
 #include <thread>
@@ -14,9 +13,15 @@ void Game::init() {
     Engine::InputManager::setLockCursor(window->getHandle(), true);
     Engine::InputManager::registerCallbacks(window->getHandle());
 
-    Engine::InputManager::keyPressListeners.emplace_back([=, this](int key) {
+    Engine::InputManager::keyPressListeners.emplace_back([this](int key) {
         if (key == GLFW_KEY_ESCAPE) {
             Engine::InputManager::setLockCursor(window->getHandle(), !Engine::InputManager::lockCursor);
+        }
+    });
+
+    Engine::InputManager::keyPressListeners.emplace_back([](int key) {
+        if (key == GLFW_KEY_F) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     });
 
@@ -70,6 +75,7 @@ void Game::update() {
     uniformCamera.view = camera.getView();
     uniformCamera.proj = camera.getProjection();
     uniformCamera.proj[1][1] *= -1;
+    uniformCamera.position = glm::vec4(camera.position, 0.f);
 
     uniformCamera.upload(*context.currentFrame);
 }
@@ -112,6 +118,7 @@ void Game::render(VkCommandBuffer commandBuffer) {
 
     static Uniform_ModelData data{};
 
+    data.color = glm::vec4(1, 1, 0, 1);
     data.model = cubeGameObject.getModel();
     vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData),
                        &data);
@@ -130,7 +137,7 @@ void Game::render(VkCommandBuffer commandBuffer) {
         vkCmdDrawIndexed(commandBuffer, cubeGameObject.meshes[i].indexCount, 1, 0, 0, 0);
     }
 
-
+    data.color = glm::vec4(1, 0, 0, 1);
     data.model = planeGameObject.getModel();
     vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData),
                        &data);
@@ -160,8 +167,13 @@ void Game::gui() {
                      ImGuiWindowFlags_NoFocusOnAppearing |
                      ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove)) {
         ImGui::Text("FPS: %.0f", ImGui::GetIO().Framerate);
+        ImGui::PlotLines("FPS", Engine::Engine::data.fpsSamples, 32);
         ImGui::Text("CPU: %.1fms", (double) Engine::Engine::data.lastCpuThread * 0.001);
+        ImGui::Text("CPU thread wait: %.1fms", (double) Engine::Engine::data.cpuWait * 0.001);
+        ImGui::PlotLines("CPU thread", Engine::Engine::data.cpuSamples, 256);
         ImGui::Text("GPU: %.1fms", (double) Engine::Engine::data.lastGpuThread * 0.001);
+        ImGui::Text("GPU thread wait: %.1fms", (double) Engine::Engine::data.gpuWait * 0.001);
+        ImGui::PlotLines("GPU thread", Engine::Engine::data.gpuSamples, 256);
         ImGui::NewLine();
         ImGui::Text("Facing: %.2f %.2f", camera.rotation.x, camera.rotation.y);
         ImGui::Text("Position: %.1f %.1f %.1f", camera.position.x, camera.position.y, camera.position.z);
@@ -242,14 +254,14 @@ void Game::createGraphicsPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDynamicState> dynamicStates = {
+    VkDynamicState dynamicStates[] = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
     };
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-    dynamicState.pDynamicStates = dynamicStates.data();
+    dynamicState.dynamicStateCount = sizeof(dynamicStates) / sizeof(*dynamicStates);
+    dynamicState.pDynamicStates = dynamicStates;
 
     VkPipelineDepthStencilStateCreateInfo depthStencil = {};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;

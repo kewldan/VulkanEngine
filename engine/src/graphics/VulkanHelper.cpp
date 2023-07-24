@@ -523,6 +523,9 @@ namespace Engine {
         vkDestroyImageView(vkLogicalDevice, depthImageView, nullptr);
         vmaDestroyImage(allocator, depthImage.image, depthImage.allocation);
 
+        vkDestroyImageView(vkLogicalDevice, colorImageView, nullptr);
+        vmaDestroyImage(allocator, colorImage.image, colorImage.allocation);
+
         vkDestroySwapchainKHR(vkLogicalDevice, swapChain, nullptr);
     }
 

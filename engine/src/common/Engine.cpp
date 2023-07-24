@@ -65,8 +65,10 @@ namespace Engine {
 
         renderThread = std::thread([&application, &vkHandler]() {
             while (!application.shouldClose()) {
+                uint64_t t = time();
                 if (smphSignalMainToThread.try_acquire_for(std::chrono::milliseconds(100))) {
-                    uint64_t t = time();
+                    data.gpuWait = time() - t;
+                    t = time();
                     int currentFrame = vkHandler.syncNewFrame();
 
                     application.render(vkHandler.commandBuffers[currentFrame]);
@@ -78,8 +80,20 @@ namespace Engine {
 
                     vkHandler.endFrame();
                     data.lastGpuThread = time() - t;
+                    memcpy(data.gpuSamples, data.gpuSamples + 1, 255 * sizeof(float));
+                    data.gpuSamples[255] = (float) data.lastGpuThread;
                     smphSignalThreadToMain.release();
                 }
+                data.lastFps++;
+            }
+        });
+
+        std::thread fpsCounter([&application]() {
+            while (!application.shouldClose()) {
+                memcpy(data.fpsSamples, data.fpsSamples + 1, 31 * sizeof(float));
+                data.fpsSamples[31] = (float) data.lastFps * 4;
+                data.lastFps = 0;
+                std::this_thread::sleep_for(std::chrono::milliseconds(250));
             }
         });
 
@@ -91,12 +105,19 @@ namespace Engine {
             glfwPollEvents();
 
             data.lastCpuThread = time() - t;
+
+            memcpy(data.cpuSamples, data.cpuSamples + 1, 255 * sizeof(float));
+            data.cpuSamples[255] = (float) data.lastCpuThread;
+
+            t = time();
             smphSignalThreadToMain.acquire();
+            data.cpuWait = time() - t;
         }
 
         vkHandler.idle();
 
         renderThread.join();
+        fpsCounter.join();
 
         application.cleanup();
         vkHandler.cleanup();

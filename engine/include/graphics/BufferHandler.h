@@ -6,16 +6,24 @@ namespace Engine {
     class BufferHandler {
     private:
         static uint32_t
-        findMemoryType(VkPhysicalDevice vkPhysicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+        findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     public:
         static void
-        createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage,
+        createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
                      VkMemoryPropertyFlags properties,
                      VkBuffer &buffer, VkDeviceMemory &bufferMemory);
 
 
-        static void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkBuffer srcBuffer,
+        static void copyBuffer(VkBuffer srcBuffer,
                                VkBuffer dstBuffer, VkDeviceSize size);
+
+        static AllocatedBuffer createStagingBuffer(VkDeviceSize size);
+
+        static AllocatedBuffer createStagingBuffer(VkDeviceSize size, void *bufferData);
+
+        static AllocatedBuffer createGpuBuffer(VkDeviceSize size, VkBufferUsageFlags usage);
+
+        static AllocatedBuffer createGpuBuffer(VkDeviceSize size, VkBufferUsageFlags usage, void *bufferData);
     };
 }

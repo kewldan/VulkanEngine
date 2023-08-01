@@ -1,12 +1,15 @@
-#include <stdexcept>
-#include <algorithm>
-#include <thread>
 #include "Game.h"
-#include "imgui.h"
+
 #include "io/AssetLoader.h"
 #include "graphics/BufferHandler.h"
 #include "plog/Log.h"
 #include "common/Engine.h"
+#include "graphics/VulkanContext.h"
+
+#include <stdexcept>
+#include <algorithm>
+#include <thread>
+#include <imgui.h>
 
 void Game::init() {
     Engine::InputManager::setRawInput(window->getHandle(), true);
@@ -29,9 +32,7 @@ void Game::init() {
 
     planeGameObject.scale = glm::vec3(100.f, 1.f, 100.f);
 
-    uniformCamera.init(context.physicalDevice,
-                       context.device, context.descriptorPool,
-                       VK_SHADER_STAGE_VERTEX_BIT, 0);
+    uniformCamera.init(VK_SHADER_STAGE_VERTEX_BIT, 0);
 
     descriptorSetLayouts.push_back(uniformCamera.layout);
 
@@ -70,28 +71,29 @@ void Game::update() {
     }
     camera.position += vel;
 
-    camera.update((float) context.swapChainExtent->width, (float) context.swapChainExtent->height);
+    camera.update((float) Engine::VulkanContext::swapChainExtent.width,
+                  (float) Engine::VulkanContext::swapChainExtent.height);
 
     uniformCamera.view = camera.getView();
     uniformCamera.proj = camera.getProjection();
     uniformCamera.proj[1][1] *= -1;
     uniformCamera.position = glm::vec4(camera.position, 0.f);
 
-    uniformCamera.upload(*context.currentFrame);
+    uniformCamera.upload();
 }
 
 void Game::cleanup() {
     world.cleanup();
-    vkDestroyPipelineLayout(context.device, pipelineLayout, nullptr);
-    vkDestroyPipeline(context.device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(Engine::VulkanContext::device, pipelineLayout, nullptr);
+    vkDestroyPipeline(Engine::VulkanContext::device, graphicsPipeline, nullptr);
 
     for (VkDescriptorSetLayout layout: descriptorSetLayouts) {
-        vkDestroyDescriptorSetLayout(context.device, layout, nullptr);
+        vkDestroyDescriptorSetLayout(Engine::VulkanContext::device, layout, nullptr);
     }
 
-    uniformCamera.cleanup(context.device);
-    cubeGameObject.cleanup(context.allocator);
-    planeGameObject.cleanup(context.allocator);
+    uniformCamera.cleanup();
+    cubeGameObject.cleanup();
+    planeGameObject.cleanup();
     window->cleanup();
 }
 
@@ -105,15 +107,15 @@ void Game::render(VkCommandBuffer commandBuffer) {
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float) context.swapChainExtent->width;
-    viewport.height = (float) context.swapChainExtent->height;
+    viewport.width = (float) Engine::VulkanContext::swapChainExtent.width;
+    viewport.height = (float) Engine::VulkanContext::swapChainExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = *context.swapChainExtent;
+    scissor.extent = Engine::VulkanContext::swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     static Uniform_ModelData data{};
@@ -129,7 +131,7 @@ void Game::render(VkCommandBuffer commandBuffer) {
         vkCmdBindIndexBuffer(commandBuffer, cubeGameObject.meshes[i].indexBuffer.buffer, 0,
                              VK_INDEX_TYPE_UINT16);
         VkDescriptorSet sets[] = {
-                uniformCamera.descriptorSets[*context.currentFrame]
+                uniformCamera.descriptorSets[Engine::VulkanContext::currentFrame]
         };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelineLayout, 0, 1,
@@ -149,7 +151,7 @@ void Game::render(VkCommandBuffer commandBuffer) {
                              VK_INDEX_TYPE_UINT16);
 
         VkDescriptorSet sets[] = {
-                uniformCamera.descriptorSets[*context.currentFrame]
+                uniformCamera.descriptorSets[Engine::VulkanContext::currentFrame]
         };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelineLayout, 0, 1,
@@ -232,7 +234,7 @@ void Game::createGraphicsPipeline() {
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = context.msaaSamples;
+    multisampling.rasterizationSamples = Engine::VulkanContext::msaaSamples;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask =
@@ -285,17 +287,18 @@ void Game::createGraphicsPipeline() {
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = context.renderPass;
+    pipelineInfo.renderPass = Engine::VulkanContext::renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    if (vkCreateGraphicsPipelines(context.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) !=
+    if (vkCreateGraphicsPipelines(Engine::VulkanContext::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+                                  &graphicsPipeline) !=
         VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
 
-    vkDestroyShaderModule(context.device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(context.device, vertShaderModule, nullptr);
+    vkDestroyShaderModule(Engine::VulkanContext::device, fragShaderModule, nullptr);
+    vkDestroyShaderModule(Engine::VulkanContext::device, vertShaderModule, nullptr);
 }
 
 void Game::createPipelineLayout() {
@@ -308,17 +311,18 @@ void Game::createPipelineLayout() {
     pipelineLayoutInfo.pPushConstantRanges = &push_constant;
     pipelineLayoutInfo.pushConstantRangeCount = 1;
 
-    if (vkCreatePipelineLayout(context.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout(Engine::VulkanContext::device, &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
+        VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");
     }
 }
 
 void Game::loadAssets() {
-    Engine::AssetLoader::loadGameObject(context.allocator, cubeGameObject, "./data/meshes/cube.obj");
-    Engine::AssetLoader::loadGameObject(context.allocator, planeGameObject, "./data/meshes/plane.obj");
+    Engine::AssetLoader::loadGameObject(Engine::VulkanContext::allocator, cubeGameObject, "./data/meshes/cube.obj");
+    Engine::AssetLoader::loadGameObject(Engine::VulkanContext::allocator, planeGameObject, "./data/meshes/plane.obj");
 
-    Engine::AssetLoader::loadShader(context.device, &vertShaderModule, "./data/shaders/vert.spv");
-    Engine::AssetLoader::loadShader(context.device, &fragShaderModule, "./data/shaders/frag.spv");
+    Engine::AssetLoader::loadShader(Engine::VulkanContext::device, &vertShaderModule, "./data/shaders/vert.spv");
+    Engine::AssetLoader::loadShader(Engine::VulkanContext::device, &fragShaderModule, "./data/shaders/frag.spv");
 
     Engine::AssetLoader::asyncLoad();
 }

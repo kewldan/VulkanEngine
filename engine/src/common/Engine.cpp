@@ -32,25 +32,7 @@ namespace Engine {
 
         vkHandler.init(std::vector<const char *>() = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
 
-        VkInstance vkInstance = vkHandler.getInstance();
-        application.create({
-                                   vkInstance,
-                                   vkHandler.vkPhysicalDevice,
-                                   vkHandler.vkLogicalDevice,
-                                   vkHandler.graphicsQueue,
-                                   vkHandler.presentQueue,
-                                   vkHandler.commandPool,
-                                   vkHandler.renderPass,
-                                   &vkHandler.swapChainExtent,
-                                   vkHandler.descriptorPool,
-                                   vkHandler.allocator,
-                                   vkHandler.msaaSamples,
-                                   &vkHandler.currentFrame
-                           });
-
-        GUI::init(application.getWindow()->getHandle(), vkInstance, vkHandler.vkPhysicalDevice,
-                  vkHandler.vkLogicalDevice, vkHandler.graphicsQueue, vkHandler.renderPass, vkHandler.commandPool,
-                  vkHandler.commandBuffers[0], vkHandler.msaaSamples);
+        GUI::init(application.getWindow()->getHandle());
 
         uint64_t applicationPreInitTime = time();
         application.preInit();
@@ -76,12 +58,12 @@ namespace Engine {
                     t = time();
                     int currentFrame = vkHandler.syncNewFrame();
 
-                    application.render(vkHandler.commandBuffers[currentFrame]);
+                    application.render(VulkanContext::commandBuffers[currentFrame]);
 
                     GUI::begin();
                     application.gui();
                     GUI::end();
-                    GUI::render(vkHandler.commandBuffers[currentFrame]);
+                    GUI::render(VulkanContext::commandBuffers[currentFrame]);
 
                     vkHandler.endFrame();
                     data.lastGpuThread = time() - t;
@@ -127,6 +109,10 @@ namespace Engine {
         application.cleanup();
         vkHandler.cleanup();
 
+        for (const auto &func: cleanupResources) {
+            func();
+        }
+
         glfwTerminate();
     }
 
@@ -139,4 +125,5 @@ namespace Engine {
     std::binary_semaphore Engine::smphSignalMainToThread = std::binary_semaphore(0);
     std::thread Engine::renderThread{};
     EngineData Engine::data{};
+    std::vector<std::function<void()>> Engine::cleanupResources{};
 }

@@ -5,10 +5,6 @@ namespace Engine {
         return window->shouldClose();
     }
 
-    void Application::create(VulkanContext context) {
-        this->context = context;
-    }
-
     const std::unique_ptr<Window> &Application::getWindow() const {
         return window;
     }

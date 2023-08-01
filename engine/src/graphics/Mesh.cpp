@@ -1,4 +1,7 @@
+#include <functional>
 #include "graphics/Mesh.h"
+#include "graphics/BufferHandler.h"
+#include "graphics/VulkanContext.h"
 
 namespace Engine {
     Mesh::Mesh(Vertex *vertices, uint16_t *indices, int indexCount, int vertexCount) : vertices(vertices),
@@ -7,57 +10,17 @@ namespace Engine {
                                                                                        vertexCount(vertexCount) {}
 
     void
-    Mesh::upload(VmaAllocator allocator) {
-        {
-            VkBufferCreateInfo bufferInfo = {};
-            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = sizeof(Vertex) * vertexCount;
-            bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    Mesh::upload() {
+        VkDeviceSize verticesSize = sizeof(Vertex) * vertexCount;
+        vertexBuffer = BufferHandler::createGpuBuffer(verticesSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertices);
 
-            //let the VMA library know that this data should be writeable by CPU, but also readable by GPU
-            VmaAllocationCreateInfo vmaallocInfo = {};
-            vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-            vmaCreateBuffer(allocator, &bufferInfo, &vmaallocInfo,
-                            &vertexBuffer.buffer,
-                            &vertexBuffer.allocation,
-                            nullptr);
-
-            void *data;
-            vmaMapMemory(allocator, vertexBuffer.allocation, &data);
-
-            memcpy(data, vertices, sizeof(Vertex) * vertexCount);
-
-            vmaUnmapMemory(allocator, vertexBuffer.allocation);
-        }
-
-        {
-            VkBufferCreateInfo bufferInfo = {};
-            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = sizeof(uint16_t) * indexCount;
-            bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-
-            //let the VMA library know that this data should be writeable by CPU, but also readable by GPU
-            VmaAllocationCreateInfo vmaallocInfo = {};
-            vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-            vmaCreateBuffer(allocator, &bufferInfo, &vmaallocInfo,
-                            &indexBuffer.buffer,
-                            &indexBuffer.allocation,
-                            nullptr);
-
-            void *data;
-            vmaMapMemory(allocator, indexBuffer.allocation, &data);
-
-            memcpy(data, indices, sizeof(uint16_t) * indexCount);
-
-            vmaUnmapMemory(allocator, indexBuffer.allocation);
-        }
+        VkDeviceSize indicesSize = sizeof(uint16_t) * indexCount;
+        indexBuffer = BufferHandler::createGpuBuffer(indicesSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indices);
     }
 
-    void Mesh::cleanup(VmaAllocator allocator) const {
-        vmaDestroyBuffer(allocator, vertexBuffer.buffer, vertexBuffer.allocation);
-        vmaDestroyBuffer(allocator, indexBuffer.buffer, indexBuffer.allocation);
+    void Mesh::cleanup() const {
+        vmaDestroyBuffer(VulkanContext::allocator, vertexBuffer.buffer, vertexBuffer.allocation);
+        vmaDestroyBuffer(VulkanContext::allocator, indexBuffer.buffer, indexBuffer.allocation);
     }
 
     Mesh::Mesh() = default;
@@ -93,4 +56,5 @@ namespace Engine {
 
         return attributeDescriptions;
     }
+
 }

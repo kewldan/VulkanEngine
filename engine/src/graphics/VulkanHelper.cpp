@@ -80,10 +80,6 @@ namespace Engine {
         return VK_FALSE;
     }
 
-    VkInstance &VulkanHelper::getInstance() {
-        return vkInstance;
-    }
-
     void VulkanHelper::createInstance(std::vector<const char *> extensions) {
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -120,8 +116,7 @@ namespace Engine {
 
             createInfo.pNext = nullptr;
         }
-        VkResult vkResult = vkCreateInstance(&createInfo, nullptr, &vkInstance);
-        if (vkResult != VK_SUCCESS) {
+        if (vkCreateInstance(&createInfo, nullptr, &VulkanContext::instance) != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics instance");
         }
     }
@@ -129,30 +124,30 @@ namespace Engine {
     void VulkanHelper::cleanup() {
         cleanupSwapChain();
 
-        GUI::cleanup(vkLogicalDevice);
+        GUI::cleanup(VulkanContext::device);
 
-        vkDestroyRenderPass(vkLogicalDevice, renderPass, nullptr);
+        vkDestroyRenderPass(VulkanContext::device, VulkanContext::renderPass, nullptr);
 
-        vkDestroyDescriptorPool(vkLogicalDevice, descriptorPool, nullptr);
+        vkDestroyDescriptorPool(VulkanContext::device, VulkanContext::descriptorPool, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroySemaphore(vkLogicalDevice, renderFinishedSemaphores[i], nullptr);
-            vkDestroySemaphore(vkLogicalDevice, imageAvailableSemaphores[i], nullptr);
-            vkDestroyFence(vkLogicalDevice, inFlightFences[i], nullptr);
+            vkDestroySemaphore(VulkanContext::device, renderFinishedSemaphores[i], nullptr);
+            vkDestroySemaphore(VulkanContext::device, imageAvailableSemaphores[i], nullptr);
+            vkDestroyFence(VulkanContext::device, inFlightFences[i], nullptr);
         }
 
-        vkDestroyCommandPool(vkLogicalDevice, commandPool, nullptr);
+        vkDestroyCommandPool(VulkanContext::device, VulkanContext::commandPool, nullptr);
 
-        vmaDestroyAllocator(allocator);
+        vmaDestroyAllocator(VulkanContext::allocator);
 
-        vkDestroyDevice(vkLogicalDevice, nullptr);
+        vkDestroyDevice(VulkanContext::device, nullptr);
 
         if (enableValidationLayers) {
-            DestroyDebugUtilsMessengerEXT(vkInstance, debugMessenger, nullptr);
+            DestroyDebugUtilsMessengerEXT(VulkanContext::instance, debugMessenger, nullptr);
         }
 
-        vkDestroySurfaceKHR(vkInstance, surface, nullptr);
-        vkDestroyInstance(vkInstance, nullptr);
+        vkDestroySurfaceKHR(VulkanContext::instance, VulkanContext::surface, nullptr);
+        vkDestroyInstance(VulkanContext::instance, nullptr);
     }
 
     void VulkanHelper::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
@@ -171,7 +166,8 @@ namespace Engine {
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
 
-        if (CreateDebugUtilsMessengerEXT(vkInstance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+        if (CreateDebugUtilsMessengerEXT(VulkanContext::instance, &createInfo, nullptr, &debugMessenger) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to set up debug messenger!");
         }
     }
@@ -191,7 +187,7 @@ namespace Engine {
 
         createSurface();
 
-        DeviceHandler::getDevices(&vkPhysicalDevice, &vkLogicalDevice, &indices, vkInstance,
+        DeviceHandler::getDevices(&indices,
                                   std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                                                                  VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
                                                                  VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
@@ -201,19 +197,16 @@ namespace Engine {
                                                                  VK_KHR_SPIRV_1_4_EXTENSION_NAME,
                                                                  VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
                                   },
-                                  enableValidationLayers, validationLayers, &graphicsQueue, &presentQueue, surface);
-
-        DebugUtils::m_device = vkLogicalDevice;
-        DebugUtils::instance = vkInstance;
+                                  enableValidationLayers, validationLayers);
 
         VmaAllocatorCreateInfo allocatorInfo = {};
-        allocatorInfo.physicalDevice = vkPhysicalDevice;
-        allocatorInfo.device = vkLogicalDevice;
-        allocatorInfo.instance = vkInstance;
-        vmaCreateAllocator(&allocatorInfo, &allocator);
+        allocatorInfo.physicalDevice = VulkanContext::physicalDevice;
+        allocatorInfo.device = VulkanContext::device;
+        allocatorInfo.instance = VulkanContext::instance;
+        vmaCreateAllocator(&allocatorInfo, &VulkanContext::allocator);
 
-        msaaSamples = getMaxUsableSampleCount();
-        PLOGD << "Using MSAAx" << msaaSamples;
+        VulkanContext::msaaSamples = getMaxUsableSampleCount();
+        PLOGD << "Using MSAAx" << VulkanContext::msaaSamples;
 
         createSwapChain();
         createImageViews();
@@ -229,7 +222,7 @@ namespace Engine {
 
     void VulkanHelper::createSurface() {
         assert(window != nullptr);
-        if (glfwCreateWindowSurface(vkInstance, window, nullptr, &surface) != VK_SUCCESS) {
+        if (glfwCreateWindowSurface(VulkanContext::instance, window, nullptr, &VulkanContext::surface) != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
         }
     }
@@ -248,7 +241,7 @@ namespace Engine {
 
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = surface;
+        createInfo.surface = VulkanContext::surface;
 
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
@@ -274,16 +267,16 @@ namespace Engine {
 
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(vkLogicalDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
+        if (vkCreateSwapchainKHR(VulkanContext::device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(vkLogicalDevice, swapChain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(VulkanContext::device, swapChain, &imageCount, nullptr);
         swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(vkLogicalDevice, swapChain, &imageCount, swapChainImages.data());
+        vkGetSwapchainImagesKHR(VulkanContext::device, swapChain, &imageCount, swapChainImages.data());
 
         swapChainImageFormat = surfaceFormat.format;
-        swapChainExtent = extent;
+        VulkanContext::swapChainExtent = extent;
     }
 
     VkSurfaceFormatKHR VulkanHelper::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
@@ -351,7 +344,7 @@ namespace Engine {
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(vkLogicalDevice, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
+            if (vkCreateImageView(VulkanContext::device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create image views!");
             }
         }
@@ -360,7 +353,7 @@ namespace Engine {
     void VulkanHelper::createRenderPass() {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
-        colorAttachment.samples = msaaSamples;
+        colorAttachment.samples = VulkanContext::msaaSamples;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -370,7 +363,7 @@ namespace Engine {
 
         VkAttachmentDescription depthAttachment{};
         depthAttachment.format = VK_FORMAT_D32_SFLOAT;
-        depthAttachment.samples = msaaSamples;
+        depthAttachment.samples = VulkanContext::msaaSamples;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -428,7 +421,8 @@ namespace Engine {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(vkLogicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(VulkanContext::device, &renderPassInfo, nullptr, &VulkanContext::renderPass) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
     }
@@ -445,14 +439,14 @@ namespace Engine {
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.renderPass = VulkanContext::renderPass;
             framebufferInfo.attachmentCount = 3;
             framebufferInfo.pAttachments = attachments;
-            framebufferInfo.width = swapChainExtent.width;
-            framebufferInfo.height = swapChainExtent.height;
+            framebufferInfo.width = VulkanContext::swapChainExtent.width;
+            framebufferInfo.height = VulkanContext::swapChainExtent.height;
             framebufferInfo.layers = 1;
 
-            if (vkCreateFramebuffer(vkLogicalDevice, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) !=
+            if (vkCreateFramebuffer(VulkanContext::device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) !=
                 VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
@@ -465,7 +459,7 @@ namespace Engine {
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
 
-        if (vkCreateCommandPool(vkLogicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+        if (vkCreateCommandPool(VulkanContext::device, &poolInfo, nullptr, &VulkanContext::commandPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
         }
     }
@@ -483,18 +477,18 @@ namespace Engine {
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            if (vkCreateSemaphore(vkLogicalDevice, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) !=
+            if (vkCreateSemaphore(VulkanContext::device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) !=
                 VK_SUCCESS ||
-                vkCreateSemaphore(vkLogicalDevice, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) !=
+                vkCreateSemaphore(VulkanContext::device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) !=
                 VK_SUCCESS ||
-                vkCreateFence(vkLogicalDevice, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+                vkCreateFence(VulkanContext::device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create synchronization objects for a frame!");
             }
         }
     }
 
     void VulkanHelper::idle() const {
-        vkDeviceWaitIdle(vkLogicalDevice);
+        vkDeviceWaitIdle(VulkanContext::device);
     }
 
     void VulkanHelper::recreateSwapChain() {
@@ -507,8 +501,8 @@ namespace Engine {
 
         idle();
 
-        swapChainExtent.width = width;
-        swapChainExtent.height = height;
+        VulkanContext::swapChainExtent.width = width;
+        VulkanContext::swapChainExtent.height = height;
 
         cleanupSwapChain();
 
@@ -521,32 +515,33 @@ namespace Engine {
 
     void VulkanHelper::cleanupSwapChain() {
         for (auto &swapChainFramebuffer: swapChainFramebuffers) {
-            vkDestroyFramebuffer(vkLogicalDevice, swapChainFramebuffer, nullptr);
+            vkDestroyFramebuffer(VulkanContext::device, swapChainFramebuffer, nullptr);
         }
 
         for (auto &swapChainImageView: swapChainImageViews) {
-            vkDestroyImageView(vkLogicalDevice, swapChainImageView, nullptr);
+            vkDestroyImageView(VulkanContext::device, swapChainImageView, nullptr);
         }
 
-        vkDestroyImageView(vkLogicalDevice, depthImageView, nullptr);
-        vmaDestroyImage(allocator, depthImage.image, depthImage.allocation);
+        vkDestroyImageView(VulkanContext::device, depthImageView, nullptr);
+        vmaDestroyImage(VulkanContext::allocator, depthImage.image, depthImage.allocation);
 
-        vkDestroyImageView(vkLogicalDevice, colorImageView, nullptr);
-        vmaDestroyImage(allocator, colorImage.image, colorImage.allocation);
+        vkDestroyImageView(VulkanContext::device, colorImageView, nullptr);
+        vmaDestroyImage(VulkanContext::allocator, colorImage.image, colorImage.allocation);
 
-        vkDestroySwapchainKHR(vkLogicalDevice, swapChain, nullptr);
+        vkDestroySwapchainKHR(VulkanContext::device, swapChain, nullptr);
     }
 
     void VulkanHelper::createCommandBuffers() {
-        commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        VulkanContext::commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = commandPool;
+        allocInfo.commandPool = VulkanContext::commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+        allocInfo.commandBufferCount = (uint32_t) VulkanContext::commandBuffers.size();
 
-        if (vkAllocateCommandBuffers(vkLogicalDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(VulkanContext::device, &allocInfo, VulkanContext::commandBuffers.data()) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
@@ -562,16 +557,18 @@ namespace Engine {
         poolInfo.pPoolSizes = poolSize;
         poolInfo.maxSets = static_cast<uint32_t>(40);
 
-        if (vkCreateDescriptorPool(vkLogicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(VulkanContext::device, &poolInfo, nullptr, &VulkanContext::descriptorPool) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
     }
 
     int VulkanHelper::syncNewFrame() {
-        vkWaitForFences(vkLogicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+        vkWaitForFences(VulkanContext::device, 1, &inFlightFences[VulkanContext::currentFrame], VK_TRUE, UINT64_MAX);
 
-        VkResult result = vkAcquireNextImageKHR(vkLogicalDevice, swapChain, UINT64_MAX,
-                                                imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(VulkanContext::device, swapChain, UINT64_MAX,
+                                                imageAvailableSemaphores[VulkanContext::currentFrame], VK_NULL_HANDLE,
+                                                &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapChain();
@@ -579,23 +576,25 @@ namespace Engine {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        vkResetFences(vkLogicalDevice, 1, &inFlightFences[currentFrame]);
+        vkResetFences(VulkanContext::device, 1, &inFlightFences[VulkanContext::currentFrame]);
 
-        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        vkResetCommandBuffer(
+                VulkanContext::commandBuffers[VulkanContext::currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
+        if (vkBeginCommandBuffer(VulkanContext::commandBuffers[VulkanContext::currentFrame], &beginInfo) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.renderPass = VulkanContext::renderPass;
         renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChainExtent;
+        renderPassInfo.renderArea.extent = VulkanContext::swapChainExtent;
 
         const static VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
         VkClearValue depthClear;
@@ -606,35 +605,37 @@ namespace Engine {
         renderPassInfo.clearValueCount = 2;
         renderPassInfo.pClearValues = clearValues;
 
-        vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(VulkanContext::commandBuffers[VulkanContext::currentFrame], &renderPassInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
 
-        return currentFrame;
+        return VulkanContext::currentFrame;
     }
 
     void VulkanHelper::endFrame() {
-        vkCmdEndRenderPass(commandBuffers[currentFrame]);
+        vkCmdEndRenderPass(VulkanContext::commandBuffers[VulkanContext::currentFrame]);
 
-        if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
+        if (vkEndCommandBuffer(VulkanContext::commandBuffers[VulkanContext::currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+        VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[VulkanContext::currentFrame]};
         VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+        submitInfo.pCommandBuffers = &VulkanContext::commandBuffers[VulkanContext::currentFrame];
 
-        VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+        VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[VulkanContext::currentFrame]};
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+        if (vkQueueSubmit(VulkanContext::graphicsQueue, 1, &submitInfo, inFlightFences[VulkanContext::currentFrame]) !=
+            VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
 
@@ -650,7 +651,7 @@ namespace Engine {
 
         presentInfo.pImageIndices = &imageIndex;
 
-        VkResult result = vkQueuePresentKHR(presentQueue, &presentInfo);
+        VkResult result = vkQueuePresentKHR(VulkanContext::presentQueue, &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
             framebufferResized = false;
@@ -659,28 +660,33 @@ namespace Engine {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
-        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        VulkanContext::currentFrame = (VulkanContext::currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     SwapChainSupportDetails VulkanHelper::querySwapChainSupport() const {
         SwapChainSupportDetails details;
 
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkPhysicalDevice, surface, &details.capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(VulkanContext::physicalDevice, VulkanContext::surface,
+                                                  &details.capabilities);
 
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(VulkanContext::physicalDevice, VulkanContext::surface, &formatCount,
+                                             nullptr);
 
         if (formatCount != 0) {
             details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, surface, &formatCount, details.formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(VulkanContext::physicalDevice, VulkanContext::surface, &formatCount,
+                                                 details.formats.data());
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(VulkanContext::physicalDevice, VulkanContext::surface,
+                                                  &presentModeCount, nullptr);
 
         if (presentModeCount != 0) {
             details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, surface, &presentModeCount,
+            vkGetPhysicalDeviceSurfacePresentModesKHR(VulkanContext::physicalDevice, VulkanContext::surface,
+                                                      &presentModeCount,
                                                       details.presentModes.data());
         }
 
@@ -712,7 +718,8 @@ namespace Engine {
         VmaAllocationCreateInfo allocationInfo = {};
         allocationInfo.usage = memoryUsage;
 
-        if (vmaCreateImage(allocator, &imageInfo, &allocationInfo, &img.image, &img.allocation, nullptr) !=
+        if (vmaCreateImage(VulkanContext::allocator, &imageInfo, &allocationInfo, &img.image, &img.allocation,
+                           nullptr) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create image!");
         }
@@ -723,9 +730,10 @@ namespace Engine {
     void VulkanHelper::createColorResource() {
         VkFormat colorFormat = swapChainImageFormat;
 
-        colorImage = createImage(swapChainExtent.width, swapChainExtent.height, colorFormat, VK_IMAGE_TILING_OPTIMAL,
+        colorImage = createImage(VulkanContext::swapChainExtent.width, VulkanContext::swapChainExtent.height,
+                                 colorFormat, VK_IMAGE_TILING_OPTIMAL,
                                  VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                 msaaSamples, VMA_MEMORY_USAGE_AUTO);
+                                 VulkanContext::msaaSamples, VMA_MEMORY_USAGE_AUTO);
         colorImageView = createImageView(colorImage.image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 
@@ -743,7 +751,7 @@ namespace Engine {
         viewInfo.subresourceRange.layerCount = 1;
 
         VkImageView imageView;
-        if (vkCreateImageView(vkLogicalDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+        if (vkCreateImageView(VulkanContext::device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture image view!");
         }
 
@@ -752,7 +760,7 @@ namespace Engine {
 
     VkSampleCountFlagBits VulkanHelper::getMaxUsableSampleCount() const {
         VkPhysicalDeviceProperties physicalDeviceProperties;
-        vkGetPhysicalDeviceProperties(vkPhysicalDevice, &physicalDeviceProperties);
+        vkGetPhysicalDeviceProperties(VulkanContext::physicalDevice, &physicalDeviceProperties);
 
         VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
                                     physicalDeviceProperties.limits.framebufferDepthSampleCounts;
@@ -767,9 +775,10 @@ namespace Engine {
     }
 
     void VulkanHelper::createDepthResource() {
-        depthImage = createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_D32_SFLOAT,
+        depthImage = createImage(VulkanContext::swapChainExtent.width, VulkanContext::swapChainExtent.height,
+                                 VK_FORMAT_D32_SFLOAT,
                                  VK_IMAGE_TILING_OPTIMAL,
-                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, msaaSamples,
+                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VulkanContext::msaaSamples,
                                  VMA_MEMORY_USAGE_GPU_ONLY);
         depthImageView = createImageView(depthImage.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     }

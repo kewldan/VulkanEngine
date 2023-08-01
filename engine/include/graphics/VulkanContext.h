@@ -3,17 +3,20 @@
 #include "VulkanHelper.h"
 
 namespace Engine {
-    struct VulkanContext {
-        VkInstance instance;
-        VkPhysicalDevice physicalDevice;
-        VkDevice device;
-        VkQueue graphicsQueue, presentQueue;
-        VkCommandPool commandPool;
-        VkRenderPass renderPass;
-        VkExtent2D *swapChainExtent;
-        VkDescriptorPool descriptorPool;
-        VmaAllocator allocator;
-        VkSampleCountFlagBits msaaSamples;
-        int *currentFrame;
+    class VulkanContext {
+    public:
+        static VkInstance instance;
+        static VkPhysicalDevice physicalDevice;
+        static VkDevice device;
+        static VkSurfaceKHR surface;
+        static VkRenderPass renderPass;
+        static VkExtent2D swapChainExtent;
+        static VkDescriptorPool descriptorPool;
+        static VkCommandPool commandPool;
+        static VkQueue graphicsQueue, presentQueue;
+        static VmaAllocator allocator;
+        static VkSampleCountFlagBits msaaSamples;
+        static int currentFrame;
+        static std::vector<VkCommandBuffer> commandBuffers;
     };
 }

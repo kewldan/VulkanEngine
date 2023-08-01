@@ -11,7 +11,7 @@ namespace Engine {
     public:
         explicit Camera(float zNear = 0.01f, float zFar = 300.f);
 
-        virtual void update(float windowWidth, float windowHeight);
+        virtual void update(float windowWidth, float windowHeight) = 0;
 
         [[nodiscard]] const virtual glm::mat4 &getView() const;
 

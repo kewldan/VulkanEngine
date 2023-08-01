@@ -65,9 +65,9 @@ namespace Engine {
         assert(filename != nullptr);
 
         auto *layout = new AssetTask;
-        layout->load = [filename, &gameObject, allocator]() { // Filename is not reference because filename is pointer and should be copy
+        layout->load = [filename, &gameObject]() { // Filename is not reference because filename is pointer and should be copy
             loadMeshes(filename, &gameObject.meshes, &gameObject.meshCount);
-            gameObject.upload(allocator);
+            gameObject.upload();
         };
         solver.addTask(layout);
     }

@@ -28,8 +28,8 @@ namespace Engine {
 
         Mesh(Vertex *vertices, uint16_t *indices, int indexCount, int vertexCount);
 
-        void upload(VmaAllocator allocator);
+        void upload();
 
-        void cleanup(VmaAllocator allocator) const;
+        void cleanup() const;
     };
 }

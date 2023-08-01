@@ -11,8 +11,8 @@ namespace Engine {
 
         GameObject();
 
-        void upload(VmaAllocator allocator) const;
+        void upload() const;
 
-        void cleanup(VmaAllocator allocator) const;
+        void cleanup() const;
     };
 }

@@ -9,9 +9,5 @@ namespace Engine {
         return projection;
     }
 
-    void Camera::update(float windowWidth, float windowHeight) {
-
-    }
-
     Camera::Camera(float zNear, float zFar) : Z_NEAR(zNear), Z_FAR(zFar) {}
 }

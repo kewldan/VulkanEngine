@@ -3,12 +3,12 @@
 #include <cassert>
 #include <stdexcept>
 #include "graphics/DeviceHandler.h"
+#include "graphics/VulkanContext.h"
 
 namespace Engine {
     VkDevice
-    DeviceHandler::createLogicalDevice(VkPhysicalDevice physicalDevice, std::vector<const char *> &deviceExtensions,
+    DeviceHandler::createLogicalDevice(std::vector<const char *> &deviceExtensions,
                                        bool enableValidationLayers, std::vector<const char *> &validationLayers,
-                                       VkQueue *graphicsQueue, VkQueue *presentQueue,
                                        QueueFamilyIndices indices) {
         VkDevice device;
 
@@ -45,28 +45,28 @@ namespace Engine {
             createInfo.enabledLayerCount = 0;
         }
 
-        if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+        if (vkCreateDevice(VulkanContext::physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
 
-        vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, graphicsQueue);
-        vkGetDeviceQueue(device, indices.presentFamily.value(), 0, presentQueue);
+        vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &VulkanContext::graphicsQueue);
+        vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &VulkanContext::presentQueue);
 
         return device;
     }
 
     VkPhysicalDevice
-    DeviceHandler::pickPhysicalDevice(VkInstance instance) {
+    DeviceHandler::pickPhysicalDevice() {
         VkPhysicalDevice physicalDevice;
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(VulkanContext::instance, &deviceCount, nullptr);
 
         if (deviceCount == 0) {
             throw std::runtime_error("failed to find GPUs with VulkanHelper support!");
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(VulkanContext::instance, &deviceCount, devices.data());
 
         physicalDevice = devices[0];
 
@@ -77,16 +77,15 @@ namespace Engine {
         return physicalDevice;
     }
 
-    QueueFamilyIndices DeviceHandler::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
-        assert(device != nullptr);
-
+    QueueFamilyIndices DeviceHandler::findQueueFamilies() {
         QueueFamilyIndices indices;
 
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(VulkanContext::physicalDevice, &queueFamilyCount, nullptr);
 
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+        vkGetPhysicalDeviceQueueFamilyProperties(VulkanContext::physicalDevice, &queueFamilyCount,
+                                                 queueFamilies.data());
 
         int i = 0;
         for (const auto &queueFamily: queueFamilies) {
@@ -95,7 +94,8 @@ namespace Engine {
             }
 
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(VulkanContext::physicalDevice, i, VulkanContext::surface,
+                                                 &presentSupport);
 
             if (presentSupport) {
                 indices.presentFamily = i;
@@ -112,17 +112,13 @@ namespace Engine {
     }
 
     void
-    DeviceHandler::getDevices(VkPhysicalDevice *physicalDevice,
-                              VkDevice *device, QueueFamilyIndices *familyIndices,
-                              VkInstance instance,
+    DeviceHandler::getDevices(QueueFamilyIndices *familyIndices,
                               std::vector<const char *> &deviceExtensions, bool enableValidationLayers,
-                              std::vector<const char *> &validationLayers, VkQueue *graphicsQueue,
-                              VkQueue *presentQueue,
-                              VkSurfaceKHR surface) {
-        *physicalDevice = pickPhysicalDevice(instance);
-        *familyIndices = findQueueFamilies(*physicalDevice, surface);
+                              std::vector<const char *> &validationLayers) {
+        VulkanContext::physicalDevice = pickPhysicalDevice();
+        *familyIndices = findQueueFamilies();
 
-        *device = createLogicalDevice(*physicalDevice, deviceExtensions, enableValidationLayers, validationLayers,
-                                      graphicsQueue, presentQueue, *familyIndices);
+        VulkanContext::device = createLogicalDevice(deviceExtensions, enableValidationLayers, validationLayers,
+                                                    *familyIndices);
     }
 }

@@ -5,22 +5,19 @@
 namespace Engine {
     class DeviceHandler {
     private:
-        static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+        static QueueFamilyIndices findQueueFamilies();
 
     public:
-        static VkPhysicalDevice pickPhysicalDevice(VkInstance instance);
+        static VkPhysicalDevice pickPhysicalDevice();
 
         static VkDevice
-        createLogicalDevice(VkPhysicalDevice physicalDevice, std::vector<const char *> &deviceExtensions,
+        createLogicalDevice(std::vector<const char *> &deviceExtensions,
                             bool enableValidationLayers, std::vector<const char *> &validationLayers,
-                            VkQueue *graphicsQueue, VkQueue *presentQueue, QueueFamilyIndices indices);
+                            QueueFamilyIndices indices);
 
         static void
-        getDevices(VkPhysicalDevice *physicalDevice, VkDevice *device,
-                   QueueFamilyIndices *familyIndices,
-                   VkInstance instance,
+        getDevices(QueueFamilyIndices *familyIndices,
                    std::vector<const char *> &deviceExtensions, bool enableValidationLayers,
-                   std::vector<const char *> &validationLayers, VkQueue *graphicsQueue, VkQueue *presentQueue,
-                   VkSurfaceKHR surface);
+                   std::vector<const char *> &validationLayers);
     };
 }

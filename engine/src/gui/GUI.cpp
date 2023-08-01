@@ -9,10 +9,7 @@
 
 namespace Engine {
 
-    void GUI::init(GLFWwindow *window, VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device,
-                   VkQueue graphicsQueue,
-                   VkRenderPass renderPass, VkCommandPool commandPool, VkCommandBuffer commandBuffer,
-                   VkSampleCountFlagBits sampleCount) {
+    void GUI::init(GLFWwindow *window) {
         VkDescriptorPoolSize pool_sizes[] =
                 {
                         {VK_DESCRIPTOR_TYPE_SAMPLER,                1000},
@@ -35,7 +32,7 @@ namespace Engine {
         pool_info.poolSizeCount = std::size(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
 
-        vkCreateDescriptorPool(device, &pool_info, nullptr, &imguiPool);
+        vkCreateDescriptorPool(VulkanContext::device, &pool_info, nullptr, &imguiPool);
 
         DebugUtils::setObjectName(imguiPool, "ImGui descriptor pool");
 
@@ -44,38 +41,38 @@ namespace Engine {
         ImGui_ImplGlfw_InitForVulkan(window, false);
 
         ImGui_ImplVulkan_InitInfo init_info = {};
-        init_info.Instance = instance;
-        init_info.PhysicalDevice = physicalDevice;
-        init_info.Device = device;
-        init_info.Queue = graphicsQueue;
+        init_info.Instance = VulkanContext::instance;
+        init_info.PhysicalDevice = VulkanContext::physicalDevice;
+        init_info.Device = VulkanContext::device;
+        init_info.Queue = VulkanContext::graphicsQueue;
         init_info.DescriptorPool = imguiPool;
         init_info.MinImageCount = 3;
         init_info.ImageCount = 3;
-        init_info.MSAASamples = sampleCount;
+        init_info.MSAASamples = VulkanContext::msaaSamples;
 
-        ImGui_ImplVulkan_Init(&init_info, renderPass);
+        ImGui_ImplVulkan_Init(&init_info, VulkanContext::renderPass);
 
-        VkResult err = vkResetCommandPool(device, commandPool, 0);
+        VkResult err = vkResetCommandPool(VulkanContext::device, VulkanContext::commandPool, 0);
         PLOGF_IF(err != VK_SUCCESS) << err;
 
         VkCommandBufferBeginInfo begin_info = {};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        err = vkBeginCommandBuffer(commandBuffer, &begin_info);
+        err = vkBeginCommandBuffer(VulkanContext::commandBuffers[0], &begin_info);
         PLOGF_IF(err != VK_SUCCESS) << err;
 
-        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+        ImGui_ImplVulkan_CreateFontsTexture(VulkanContext::commandBuffers[0]);
 
         VkSubmitInfo end_info = {};
         end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         end_info.commandBufferCount = 1;
-        end_info.pCommandBuffers = &commandBuffer;
-        err = vkEndCommandBuffer(commandBuffer);
+        end_info.pCommandBuffers = &VulkanContext::commandBuffers[0];
+        err = vkEndCommandBuffer(VulkanContext::commandBuffers[0]);
         PLOGF_IF(err != VK_SUCCESS) << err;
-        err = vkQueueSubmit(graphicsQueue, 1, &end_info, VK_NULL_HANDLE);
+        err = vkQueueSubmit(VulkanContext::graphicsQueue, 1, &end_info, VK_NULL_HANDLE);
         PLOGF_IF(err != VK_SUCCESS) << err;
 
-        err = vkDeviceWaitIdle(device);
+        err = vkDeviceWaitIdle(VulkanContext::device);
         PLOGF_IF(err != VK_SUCCESS) << err;
         ImGui_ImplVulkan_DestroyFontUploadObjects();
 

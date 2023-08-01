@@ -9,11 +9,8 @@
 namespace Engine {
     class Application {
     protected:
-        VulkanContext context;
         std::unique_ptr<Window> window;
     public:
-        virtual void create(VulkanContext context);
-
         virtual void createWindow() = 0;
 
         virtual void loadAssets() = 0;

@@ -3,15 +3,15 @@
 namespace Engine {
     GameObject::GameObject() = default;
 
-    void GameObject::upload(VmaAllocator allocator) const {
+    void GameObject::upload() const {
         for (int i = 0; i < meshCount; i++) {
-            meshes[i].upload(allocator);
+            meshes[i].upload();
         }
     }
 
-    void GameObject::cleanup(VmaAllocator allocator) const {
+    void GameObject::cleanup() const {
         for (int i = 0; i < meshCount; i++) {
-            meshes[i].cleanup(allocator);
+            meshes[i].cleanup();
         }
     }
 }

@@ -1,20 +1,19 @@
 #pragma once
 
 #include "VulkanHelper.h"
+#include "VulkanContext.h"
 
 namespace Engine {
     class DebugUtils {
     public:
-        static VkDevice m_device;
-        static VkInstance instance;
-
         static void setObjectName(const uint64_t object, const char *name, VkObjectType t) {
             VkDebugUtilsObjectNameInfoEXT s{VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT, nullptr, t, object,
                                             name};
             PFN_vkSetDebugUtilsObjectNameEXT setDebugUtilsObjectNameExt = VK_NULL_HANDLE;
-            setDebugUtilsObjectNameExt = (PFN_vkSetDebugUtilsObjectNameEXT) vkGetInstanceProcAddr(instance,
-                                                                                                  "vkSetDebugUtilsObjectNameEXT");
-            setDebugUtilsObjectNameExt(m_device, &s);
+            setDebugUtilsObjectNameExt = (PFN_vkSetDebugUtilsObjectNameEXT) vkGetInstanceProcAddr(
+                    VulkanContext::instance,
+                    "vkSetDebugUtilsObjectNameEXT");
+            setDebugUtilsObjectNameExt(VulkanContext::device, &s);
         }
 
         static void setObjectName(VkBuffer object, const char *name) {

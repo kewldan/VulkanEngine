@@ -45,7 +45,6 @@ namespace Engine {
 
         std::vector<VkImageView> swapChainImageViews;
         std::vector<VkFramebuffer> swapChainFramebuffers;
-        int currentFrame = 0;
         bool framebufferResized = false;
 
         std::vector<VkImage> swapChainImages;
@@ -107,21 +106,13 @@ namespace Engine {
                     VkSampleCountFlagBits sampleBits,
                     VmaMemoryUsage memoryUsage) const;
 
-        VkInstance vkInstance{};
         VkDebugUtilsMessengerEXT debugMessenger{};
-        VkSurfaceKHR surface{};
         VkSwapchainKHR swapChain{};
         VkFormat swapChainImageFormat{};
-        VkExtent2D swapChainExtent{};
-        VkRenderPass renderPass{};
-        VkCommandPool commandPool{};
-        std::vector<VkCommandBuffer> commandBuffers;
         std::vector<VkSemaphore> imageAvailableSemaphores;
         std::vector<VkSemaphore> renderFinishedSemaphores;
         std::vector<VkFence> inFlightFences;
         SwapChainSupportDetails swapChainSupport;
-        VmaAllocator allocator{};
-        VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
         VkImageView depthImageView{};
         AllocatedImage depthImage{};
@@ -129,13 +120,7 @@ namespace Engine {
         AllocatedImage colorImage{};
         VkImageView colorImageView{};
 
-        VkDescriptorPool descriptorPool{};
-
-        VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
-        VkDevice vkLogicalDevice = VK_NULL_HANDLE;
         QueueFamilyIndices indices{};
-        VkQueue graphicsQueue{};
-        VkQueue presentQueue{};
 
         uint32_t imageIndex{};
 
@@ -144,8 +129,6 @@ namespace Engine {
         explicit VulkanHelper(GLFWwindow *wind, bool validation = true);
 
         [[nodiscard]] std::vector<const char *> &getValidationLayers();
-
-        VkInstance &getInstance();
 
         int syncNewFrame();
 

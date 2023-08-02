@@ -11,9 +11,9 @@ namespace Engine {
     protected:
         VkPipeline pipeline = VK_NULL_HANDLE;
     public:
-        std::function<void(GameObject &)> renderFunction;
+        std::function<void(const GameObject &)> renderFunction;
 
-        virtual void init(const std::function<void(GameObject &)> &func);
+        virtual void init(const std::function<void(const GameObject &)> &func);
 
         virtual VkPipelineShaderStageCreateInfo *
         getShaderStages(uint32_t *count, VkShaderModule vertex, VkShaderModule fragment);
@@ -33,6 +33,8 @@ namespace Engine {
         virtual const VkPipelineVertexInputStateCreateInfo *getVertexInputState();
 
         virtual VkPipelineDepthStencilStateCreateInfo getDepthState();
+
+        virtual void updateViewportScissor();
 
         virtual void build(VkPipelineLayout layout) = 0;
 

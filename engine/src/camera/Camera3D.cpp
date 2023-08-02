@@ -4,7 +4,8 @@
 
 namespace Engine {
     void Camera3D::update(float windowWidth, float windowHeight) {
-        assert(windowWidth > 0.f && windowHeight > 0.f);
+        assert(windowWidth > 0.f);
+        assert(windowHeight > 0.f);
 
         projection = glm::perspective(glm::radians(60.f), windowWidth / windowHeight, Z_NEAR, Z_FAR);
 

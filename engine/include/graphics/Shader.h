@@ -19,7 +19,7 @@ namespace Engine {
 
         void destroy() override;
 
-        VkShaderModule getModule() const;
+        [[nodiscard]] VkShaderModule getModule() const;
     };
 } // Engine
 

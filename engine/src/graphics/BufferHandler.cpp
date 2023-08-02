@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <cassert>
 #include "graphics/BufferHandler.h"
 #include "graphics/VulkanContext.h"
 
@@ -6,6 +7,10 @@ namespace Engine {
     void
     BufferHandler::copyBuffer(VkBuffer srcBuffer,
                               VkBuffer dstBuffer, VkDeviceSize size) {
+        assert(srcBuffer != nullptr);
+        assert(dstBuffer != nullptr);
+        assert(size > 0);
+
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -39,6 +44,8 @@ namespace Engine {
     }
 
     AllocatedBuffer BufferHandler::createStagingBuffer(VkDeviceSize size) {
+        assert(size > 0);
+
         AllocatedBuffer stagingBuffer{};
 
         VkBufferCreateInfo stagingBufferInfo = {};
@@ -59,6 +66,9 @@ namespace Engine {
     }
 
     AllocatedBuffer BufferHandler::createStagingBuffer(VkDeviceSize size, void *bufferData) {
+        assert(size > 0);
+        assert(bufferData != nullptr);
+
         AllocatedBuffer stagingBuffer = createStagingBuffer(size);
 
         void *data;
@@ -70,6 +80,8 @@ namespace Engine {
     }
 
     AllocatedBuffer BufferHandler::createGpuBuffer(VkDeviceSize size, VkBufferUsageFlags usage) {
+        assert(size > 0);
+
         AllocatedBuffer buffer{};
 
         VkBufferCreateInfo vertexBufferInfo = {};
@@ -90,6 +102,9 @@ namespace Engine {
     }
 
     AllocatedBuffer BufferHandler::createGpuBuffer(VkDeviceSize size, VkBufferUsageFlags usage, void *bufferData) {
+        assert(size > 0);
+        assert(bufferData != nullptr);
+
         AllocatedBuffer gpuBuffer = createGpuBuffer(size, usage);
         AllocatedBuffer stagingBuffer = createStagingBuffer(size, bufferData);
 
@@ -101,6 +116,9 @@ namespace Engine {
     }
 
     AllocatedBuffer BufferHandler::createUniformBuffer(VkDeviceSize size, void **mapped) {
+        assert(size > 0);
+        assert(mapped != nullptr);
+
         AllocatedBuffer uniformBuffer{};
 
         VkBufferCreateInfo uniformBufferInfo = {};

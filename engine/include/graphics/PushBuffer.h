@@ -21,7 +21,7 @@ namespace Engine {
 
     template<typename T>
     void PushBuffer<T>::upload(VkPipelineLayout pipelineLayout) {
-        vkCmdPushConstants(VulkanContext::commandBuffers[VulkanContext::currentFrame], pipelineLayout,
+        vkCmdPushConstants(VulkanContext::commandBuffers.getCommandBuffer(), pipelineLayout,
                            VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(T),
                            this);
     }

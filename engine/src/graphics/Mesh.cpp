@@ -34,6 +34,8 @@ namespace Engine {
     }
 
     VkVertexInputAttributeDescription *Vertex::getAttributeDescriptions(int *count) {
+        assert(count != nullptr);
+
         static auto attributeDescriptions = new VkVertexInputAttributeDescription[3];
 
         attributeDescriptions[0].binding = 0;

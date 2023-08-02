@@ -11,7 +11,7 @@ namespace Engine {
 
     void AssetLoader::loadAsset(Asset &asset) {
         auto *layout = new AssetTask;
-        layout->load = [&asset]() {
+        layout->load = [&asset] {
             asset.load();
         };
         solver.addTask(layout);

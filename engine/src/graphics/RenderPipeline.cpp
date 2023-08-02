@@ -142,11 +142,27 @@ namespace Engine {
     }
 
     void RenderPipeline::bind() {
-        vkCmdBindPipeline(VulkanContext::commandBuffers[VulkanContext::currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkCmdBindPipeline(VulkanContext::commandBuffers.getCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS,
                           pipeline);
     }
 
-    void RenderPipeline::init(const std::function<void(GameObject &)> &func) {
+    void RenderPipeline::init(const std::function<void(const GameObject &)> &func) {
         this->renderFunction = func;
+    }
+
+    void RenderPipeline::updateViewportScissor() {
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float) Engine::VulkanContext::swapChainExtent.width;
+        viewport.height = (float) Engine::VulkanContext::swapChainExtent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(VulkanContext::commandBuffers.getCommandBuffer(), 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = Engine::VulkanContext::swapChainExtent;
+        vkCmdSetScissor(VulkanContext::commandBuffers.getCommandBuffer(), 0, 1, &scissor);
     }
 }

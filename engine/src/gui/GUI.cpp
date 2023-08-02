@@ -2,7 +2,6 @@
 #include "gui/GUI.h"
 #include "plog/Log.h"
 #include "graphics/DebugUtils.h"
-#include "common/Engine.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -53,7 +52,7 @@ namespace Engine {
         init_info.ImageCount = 3;
         init_info.MSAASamples = VulkanContext::msaaSamples;
 
-        ImGui_ImplVulkan_Init(&init_info, VulkanContext::renderPass);
+        ImGui_ImplVulkan_Init(&init_info, VulkanContext::renderPass.getRenderPass());
 
         VkResult err = vkResetCommandPool(VulkanContext::device, VulkanContext::commandPool, 0);
         PLOGF_IF(err != VK_SUCCESS) << err;
@@ -61,16 +60,20 @@ namespace Engine {
         VkCommandBufferBeginInfo begin_info = {};
         begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        err = vkBeginCommandBuffer(VulkanContext::commandBuffers[0], &begin_info);
+        err = vkBeginCommandBuffer(VulkanContext::commandBuffers.getCommandBuffer(), &begin_info);
         PLOGF_IF(err != VK_SUCCESS) << err;
 
-        ImGui_ImplVulkan_CreateFontsTexture(VulkanContext::commandBuffers[0]);
+        ImGui_ImplVulkan_CreateFontsTexture(VulkanContext::commandBuffers.getCommandBuffer());
 
         VkSubmitInfo end_info = {};
         end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         end_info.commandBufferCount = 1;
-        end_info.pCommandBuffers = &VulkanContext::commandBuffers[0];
-        err = vkEndCommandBuffer(VulkanContext::commandBuffers[0]);
+
+        VkCommandBuffer commandBuffers[] = {VulkanContext::commandBuffers.getCommandBuffer()};
+
+        end_info.pCommandBuffers = commandBuffers;
+
+        err = vkEndCommandBuffer(VulkanContext::commandBuffers.getCommandBuffer());
         PLOGF_IF(err != VK_SUCCESS) << err;
         err = vkQueueSubmit(VulkanContext::graphicsQueue, 1, &end_info, VK_NULL_HANDLE);
         PLOGF_IF(err != VK_SUCCESS) << err;

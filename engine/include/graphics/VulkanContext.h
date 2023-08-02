@@ -1,6 +1,8 @@
 #pragma once
 
 #include "VulkanHelper.h"
+#include "CommandBuffers.h"
+#include "RenderPass.h"
 
 namespace Engine {
     class VulkanContext {
@@ -9,7 +11,7 @@ namespace Engine {
         static VkPhysicalDevice physicalDevice;
         static VkDevice device;
         static VkSurfaceKHR surface;
-        static VkRenderPass renderPass;
+        static RenderPass renderPass;
         static VkExtent2D swapChainExtent;
         static VkDescriptorPool descriptorPool;
         static VkCommandPool commandPool;
@@ -17,7 +19,7 @@ namespace Engine {
         static VmaAllocator allocator;
         static VkSampleCountFlagBits msaaSamples;
         static int currentFrame;
-        static std::vector<VkCommandBuffer> commandBuffers;
+        static CommandBuffers commandBuffers;
         static VkPipelineCache pipelineCache;
     };
 }

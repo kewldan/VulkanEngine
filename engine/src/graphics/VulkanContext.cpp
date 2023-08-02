@@ -4,7 +4,7 @@ namespace Engine {
     VmaAllocator VulkanContext::allocator = nullptr;
     VkPhysicalDevice VulkanContext::physicalDevice = VK_NULL_HANDLE;
     VkDevice VulkanContext::device = VK_NULL_HANDLE;
-    VkRenderPass VulkanContext::renderPass = VK_NULL_HANDLE;
+    RenderPass VulkanContext::renderPass;
     VkCommandPool VulkanContext::commandPool = VK_NULL_HANDLE;
     VkDescriptorPool VulkanContext::descriptorPool = VK_NULL_HANDLE;
     VkSampleCountFlagBits VulkanContext::msaaSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -14,6 +14,6 @@ namespace Engine {
     VkQueue VulkanContext::graphicsQueue = VK_NULL_HANDLE;
     VkQueue VulkanContext::presentQueue = VK_NULL_HANDLE;
     VkExtent2D VulkanContext::swapChainExtent{};
-    std::vector<VkCommandBuffer> VulkanContext::commandBuffers{};
+    CommandBuffers VulkanContext::commandBuffers;
     VkPipelineCache VulkanContext::pipelineCache = VK_NULL_HANDLE;
 }

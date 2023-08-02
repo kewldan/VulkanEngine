@@ -134,7 +134,7 @@ namespace Engine {
 
         vkDestroyCommandPool(VulkanContext::device, VulkanContext::commandPool, nullptr);
 
-        vkDestroyRenderPass(VulkanContext::device, VulkanContext::renderPass, nullptr);
+        VulkanContext::renderPass.destroy();
         vkDestroyPipelineCache(VulkanContext::device, VulkanContext::pipelineCache, nullptr);
 
         vmaDestroyAllocator(VulkanContext::allocator);
@@ -202,13 +202,13 @@ namespace Engine {
         createSwapChain();
         createImageViews();
         createPipelineCache();
-        createRenderPass();
+        VulkanContext::renderPass.init(swapChainImageFormat);
         createColorResource();
         createDepthResource();
         createFramebuffers();
         createCommandPool();
         createDescriptorPool();
-        createCommandBuffers();
+        VulkanContext::commandBuffers.init();
         createSyncObjects();
     }
 
@@ -279,6 +279,8 @@ namespace Engine {
             }
         }
 
+        PLOGW << "Swap surface format \"VK_FORMAT_B8G8R8A8_SRGB & VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT\" is not supported, using 1st available";
+
         return availableFormats[0];
     }
 
@@ -289,6 +291,7 @@ namespace Engine {
             }
         }
 
+        PLOGW << "Swap present mode \"VK_PRESENT_MODE_MAILBOX_KHR\" is not supported, using \"VK_PRESENT_MODE_FIFO_KHR\"";
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
@@ -342,83 +345,6 @@ namespace Engine {
         }
     }
 
-    void VulkanHelper::createRenderPass() const {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = swapChainImageFormat;
-        colorAttachment.samples = VulkanContext::msaaSamples;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = VK_FORMAT_D32_SFLOAT;
-        depthAttachment.samples = VulkanContext::msaaSamples;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentDescription colorAttachmentResolve{};
-        colorAttachmentResolve.format = swapChainImageFormat;
-        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = 1;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference colorAttachmentResolveRef{};
-        colorAttachmentResolveRef.attachment = 2;
-        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
-        subpass.pResolveAttachments = &colorAttachmentResolveRef;
-
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask =
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask =
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        VkAttachmentDescription attachments[] = {colorAttachment, depthAttachment, colorAttachmentResolve};
-
-        VkRenderPassCreateInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = 3;
-        renderPassInfo.pAttachments = attachments;
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
-        if (vkCreateRenderPass(VulkanContext::device, &renderPassInfo, nullptr, &VulkanContext::renderPass) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to create render pass!");
-        }
-    }
-
     void VulkanHelper::createFramebuffers() {
         swapChainFramebuffers.resize(swapChainImageViews.size());
 
@@ -431,7 +357,7 @@ namespace Engine {
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = VulkanContext::renderPass;
+            framebufferInfo.renderPass = VulkanContext::renderPass.getRenderPass();
             framebufferInfo.attachmentCount = 3;
             framebufferInfo.pAttachments = attachments;
             framebufferInfo.width = VulkanContext::swapChainExtent.width;
@@ -523,21 +449,6 @@ namespace Engine {
         vkDestroySwapchainKHR(VulkanContext::device, swapChain, nullptr);
     }
 
-    void VulkanHelper::createCommandBuffers() {
-        VulkanContext::commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = VulkanContext::commandPool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t) VulkanContext::commandBuffers.size();
-
-        if (vkAllocateCommandBuffers(VulkanContext::device, &allocInfo, VulkanContext::commandBuffers.data()) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
-    }
-
     void VulkanHelper::createDescriptorPool() {
         VkDescriptorPoolSize poolSize[] = {
                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 40}
@@ -571,19 +482,19 @@ namespace Engine {
         vkResetFences(VulkanContext::device, 1, &inFlightFences[VulkanContext::currentFrame]);
 
         vkResetCommandBuffer(
-                VulkanContext::commandBuffers[VulkanContext::currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+                VulkanContext::commandBuffers.getCommandBuffer(), /*VkCommandBufferResetFlagBits*/ 0);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        if (vkBeginCommandBuffer(VulkanContext::commandBuffers[VulkanContext::currentFrame], &beginInfo) !=
+        if (vkBeginCommandBuffer(VulkanContext::commandBuffers.getCommandBuffer(), &beginInfo) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = VulkanContext::renderPass;
+        renderPassInfo.renderPass = VulkanContext::renderPass.getRenderPass();
         renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = VulkanContext::swapChainExtent;
@@ -597,16 +508,16 @@ namespace Engine {
         renderPassInfo.clearValueCount = 2;
         renderPassInfo.pClearValues = clearValues;
 
-        vkCmdBeginRenderPass(VulkanContext::commandBuffers[VulkanContext::currentFrame], &renderPassInfo,
+        vkCmdBeginRenderPass(VulkanContext::commandBuffers.getCommandBuffer(), &renderPassInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
 
         return VulkanContext::currentFrame;
     }
 
     void VulkanHelper::endFrame() {
-        vkCmdEndRenderPass(VulkanContext::commandBuffers[VulkanContext::currentFrame]);
+        vkCmdEndRenderPass(VulkanContext::commandBuffers.getCommandBuffer());
 
-        if (vkEndCommandBuffer(VulkanContext::commandBuffers[VulkanContext::currentFrame]) != VK_SUCCESS) {
+        if (vkEndCommandBuffer(VulkanContext::commandBuffers.getCommandBuffer()) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
 
@@ -619,8 +530,10 @@ namespace Engine {
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
+        VkCommandBuffer commandBuffers[] = {VulkanContext::commandBuffers.getCommandBuffer()};
+
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &VulkanContext::commandBuffers[VulkanContext::currentFrame];
+        submitInfo.pCommandBuffers = commandBuffers;
 
         VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[VulkanContext::currentFrame]};
         submitInfo.signalSemaphoreCount = 1;
@@ -780,22 +693,6 @@ namespace Engine {
         VkPipelineCacheCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
         vkCreatePipelineCache(VulkanContext::device, &createInfo, nullptr, &VulkanContext::pipelineCache);
-    }
-
-    void VulkanHelper::updateViewportScissor() {
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = (float) Engine::VulkanContext::swapChainExtent.width;
-        viewport.height = (float) Engine::VulkanContext::swapChainExtent.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(VulkanContext::commandBuffers[VulkanContext::currentFrame], 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = Engine::VulkanContext::swapChainExtent;
-        vkCmdSetScissor(VulkanContext::commandBuffers[VulkanContext::currentFrame], 0, 1, &scissor);
     }
 
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,

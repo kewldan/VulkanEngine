@@ -21,7 +21,7 @@ struct Uniform_ModelData {
 
 class Game : public Engine::Application {
 private:
-    Engine::GameObject cubeGameObject, planeGameObject;
+    Engine::GameObject *cubeGameObject, *planeGameObject;
     Engine::RenderPipelineLayout pipelineLayout{};
     LitPipeline graphicsPipeline;
     Engine::UniformBuffer<Uniform_CameraData> uniformCamera;

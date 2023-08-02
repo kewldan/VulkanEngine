@@ -5,6 +5,7 @@
 #include "plog/Appenders/ColorConsoleAppender.h"
 #include "gui/GUI.h"
 #include "plog/Log.h"
+#include "io/AssetLoader.h"
 #include <chrono>
 
 namespace Engine {
@@ -42,6 +43,7 @@ namespace Engine {
 
         uint64_t applicationLoadTime = time();
         application.loadAssets();
+        AssetLoader::asyncLoad();
         PLOGD << "Application assets load took: " << floor(((double) time() - (double) applicationLoadTime) * 0.001)
               << "ms";
 
@@ -59,12 +61,12 @@ namespace Engine {
                     t = time();
                     int currentFrame = vkHandler.syncNewFrame();
 
-                    application.render(VulkanContext::commandBuffers[currentFrame]);
+                    application.render(VulkanContext::commandBuffers.getCommandBuffer());
 
                     GUI::begin();
                     application.gui();
                     GUI::end();
-                    GUI::render(VulkanContext::commandBuffers[currentFrame]);
+                    GUI::render(VulkanContext::commandBuffers.getCommandBuffer());
 
                     vkHandler.endFrame();
                     data.lastGpuThread = time() - t;

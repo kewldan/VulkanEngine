@@ -22,10 +22,6 @@ void Game::init() {
         }
     });
 
-    world.init();
-
-    planeGameObject.scale = glm::vec3(30.f, 1.f, 30.f);
-
     uniformCamera = pipelineLayout.createUniformBuffer<Uniform_CameraData>(VK_SHADER_STAGE_VERTEX_BIT, 0);
     uniformModel = pipelineLayout.createPushBuffer<Uniform_ModelData>(VK_SHADER_STAGE_VERTEX_BIT);
 
@@ -35,27 +31,27 @@ void Game::init() {
     pipelineLayout.build();
     graphicsPipeline.build(pipelineLayout.getLayout());
 
-    graphicsPipeline.init([this](Engine::GameObject &object) {
+    graphicsPipeline.init([this](const Engine::GameObject &object) {
         uniformModel.color = object.color;
         uniformModel.model = object.getModel();
         uniformModel.upload(pipelineLayout.getLayout());
 
         for (int i = 0; i < object.meshCount; i++) {
             VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame], 0, 1,
+            vkCmdBindVertexBuffers(Engine::VulkanContext::commandBuffers.getCommandBuffer(), 0, 1,
                                    &object.meshes[i].vertexBuffer.buffer, offsets);
-            vkCmdBindIndexBuffer(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame],
+            vkCmdBindIndexBuffer(Engine::VulkanContext::commandBuffers.getCommandBuffer(),
                                  object.meshes[i].indexBuffer.buffer, 0,
                                  VK_INDEX_TYPE_UINT16);
 
             VkDescriptorSet sets[] = {
                     uniformCamera.getDescriptorSet()
             };
-            vkCmdBindDescriptorSets(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame],
+            vkCmdBindDescriptorSets(Engine::VulkanContext::commandBuffers.getCommandBuffer(),
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pipelineLayout.getLayout(), 0, 1,
                                     sets, 0, nullptr);
-            vkCmdDrawIndexed(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame],
+            vkCmdDrawIndexed(Engine::VulkanContext::commandBuffers.getCommandBuffer(),
                              object.meshes[i].indexCount, 1, 0, 0, 0);
         }
     });
@@ -106,8 +102,6 @@ void Game::destroy() {
     graphicsPipeline.destroy();
 
     uniformCamera.destroy();
-    cubeGameObject.destroy();
-    planeGameObject.destroy();
     window->destroy();
 }
 
@@ -117,11 +111,9 @@ void Game::createWindow() {
 
 void Game::render(VkCommandBuffer commandBuffer) {
     graphicsPipeline.bind();
+    graphicsPipeline.updateViewportScissor();
 
-    Engine::VulkanHelper::updateViewportScissor();
-
-    graphicsPipeline.renderFunction(cubeGameObject);
-    graphicsPipeline.renderFunction(planeGameObject);
+    world.render(graphicsPipeline);
 }
 
 void Game::gui() {
@@ -149,19 +141,18 @@ void Game::gui() {
 }
 
 void Game::loadAssets() {
-    Engine::AssetLoader::loadAsset(cubeGameObject);
-    Engine::AssetLoader::loadAsset(planeGameObject);
-
     graphicsPipeline.load();
-
-    Engine::AssetLoader::asyncLoad();
+    world.load();
 }
 
 void Game::preInit() {
     graphicsPipeline = LitPipeline("./data/shaders/vert.spv", "./data/shaders/frag.spv");
 
-    cubeGameObject = Engine::GameObject("./data/meshes/cube.obj");
-    cubeGameObject.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
-    planeGameObject = Engine::GameObject("./data/meshes/plane.obj");
-    planeGameObject.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.f);
+    world.init();
+    cubeGameObject = world.instantiate("./data/meshes/cube.obj");
+    cubeGameObject->color = glm::vec4(1.f, 0.f, 0.f, 1.f);
+
+    planeGameObject = world.instantiate("./data/meshes/plane.obj");
+    planeGameObject->color = glm::vec4(0.5f, 0.5f, 0.5f, 1.f);
+    planeGameObject->scale = glm::vec3(30.f, 1.f, 30.f);
 }

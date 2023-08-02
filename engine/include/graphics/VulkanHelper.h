@@ -79,13 +79,9 @@ namespace Engine {
 
         void createImageViews();
 
-        void createRenderPass() const;
-
         void createFramebuffers();
 
         void createCommandPool();
-
-        static void createCommandBuffers();
 
         static void createPipelineCache();
 
@@ -144,7 +140,5 @@ namespace Engine {
         void init(std::vector<const char *> &extensions);
 
         void createDepthResource();
-
-        static void updateViewportScissor();
     };
 }

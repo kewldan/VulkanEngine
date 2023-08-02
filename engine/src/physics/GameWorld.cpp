@@ -1,32 +1,31 @@
 #include "physics/GameWorld.h"
 #include "plog/Log.h"
-#include "BulletDynamics/btBulletDynamicsCommon.h"
 #include "BulletCollision/btBulletCollisionCommon.h"
+#include "graphics/RenderPipeline.h"
+#include "io/AssetLoader.h"
 
 namespace Engine {
 
     GameWorld::GameWorld() = default;
 
     void GameWorld::init() {
-        // Bullet world init
 
-        btDefaultCollisionConfiguration *collisionConfiguration = new btDefaultCollisionConfiguration();
+        auto *collisionConfiguration = new btDefaultCollisionConfiguration();
 
-        btCollisionDispatcher *dispatcher = new btCollisionDispatcher(collisionConfiguration);
+        auto *dispatcher = new btCollisionDispatcher(collisionConfiguration);
 
         btBroadphaseInterface *overlappingPairCache = new btDbvtBroadphase();
 
-        btSequentialImpulseConstraintSolver *solver = new btSequentialImpulseConstraintSolver;
+        auto *solver = new btSequentialImpulseConstraintSolver;
 
-        btDiscreteDynamicsWorld *dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver,
-                                                                             collisionConfiguration);
-
+        dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver,
+                                                    collisionConfiguration);
         dynamicsWorld->setGravity(btVector3(0, -10, 0));
     }
 
-    void GameWorld::render() {
+    void GameWorld::render(const RenderPipeline &pipeline) {
         for (const GameObject *gameObject: gameObjects) {
-
+            pipeline.renderFunction(*gameObject);
         }
     }
 
@@ -38,7 +37,27 @@ namespace Engine {
         return gameObject;
     }
 
-    void GameWorld::destroy() {
+    GameObject *GameWorld::instantiate(const char *filename) {
+        assert(filename != nullptr);
 
+        auto *gameObject = new GameObject(filename);
+
+        gameObjects.push_back(gameObject);
+
+        return gameObject;
+    }
+
+    void GameWorld::destroy() {
+        for (GameObject *gameObject: gameObjects) {
+            gameObject->destroy();
+        }
+
+        delete dynamicsWorld;
+    }
+
+    void GameWorld::load() {
+        for (GameObject *gameObject: gameObjects) {
+            AssetLoader::loadAsset(*gameObject);
+        }
     }
 }

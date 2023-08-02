@@ -25,7 +25,7 @@ void LitPipeline::build(VkPipelineLayout layout) {
     pipelineInfo.pDepthStencilState = &depthState;
     pipelineInfo.pDynamicState = &dynamicStates;
     pipelineInfo.layout = layout;
-    pipelineInfo.renderPass = Engine::VulkanContext::renderPass;
+    pipelineInfo.renderPass = Engine::VulkanContext::renderPass.getRenderPass();
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
@@ -41,6 +41,9 @@ void LitPipeline::build(VkPipelineLayout layout) {
 
 LitPipeline::LitPipeline(const char *vertexSourceFile,
                          const char *fragmentSourceFile) {
+    assert(vertexSourceFile != nullptr);
+    assert(fragmentSourceFile != nullptr);
+
     vertex = Engine::Shader(vertexSourceFile);
     fragment = Engine::Shader(fragmentSourceFile);
 }

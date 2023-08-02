@@ -149,7 +149,7 @@ void Game::preInit() {
     graphicsPipeline = LitPipeline("./data/shaders/vert.spv", "./data/shaders/frag.spv");
 
     world.init();
-    cubeGameObject = world.instantiate("./data/meshes/cube.obj");
+    cubeGameObject = world.instantiate("./data/meshes/cube.obj", 1.f, new btBoxShape(btVector3(1.f, 1.f, 1.f)));
     cubeGameObject->color = glm::vec4(1.f, 0.f, 0.f, 1.f);
 
     planeGameObject = world.instantiate("./data/meshes/plane.obj");

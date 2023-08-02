@@ -43,7 +43,21 @@ namespace Engine {
         upload();
     }
 
-    GameObject::GameObject(const char *filename) : filename(filename) {}
+    GameObject::GameObject(const char *filename, float mass, btCollisionShape *shape, btVector3 position) : filename(
+            filename) {
+        btTransform transform;
+        transform.setIdentity();
+
+        if (collisionShape && mass > 0.f) {
+            collisionShape->calculateLocalInertia(mass, localInertia);
+        }
+
+        transform.setOrigin(position);
+
+        motionState = new btDefaultMotionState(transform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, collisionShape, localInertia);
+        rb = new btRigidBody(rbInfo);
+    }
 
     GameObject::GameObject() = default;
 }

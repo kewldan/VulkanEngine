@@ -37,13 +37,14 @@ namespace Engine {
         return gameObject;
     }
 
-    GameObject *GameWorld::instantiate(const char *filename) {
+    GameObject *GameWorld::instantiate(const char *filename, float mass, btCollisionShape *shape, btVector3 position) {
         assert(filename != nullptr);
 
-        auto *gameObject = new GameObject(filename);
+        auto *gameObject = new GameObject(filename, mass, shape, position);
 
         gameObjects.push_back(gameObject);
 
+        dynamicsWorld->addRigidBody(gameObject->rb);
         return gameObject;
     }
 

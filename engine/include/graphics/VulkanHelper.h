@@ -105,7 +105,7 @@ namespace Engine {
         createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 
         [[nodiscard]] static AllocatedImage
-        createImage(int w, int h, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usageBits,
+        createImage(unsigned int w, unsigned int h, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usageBits,
                     VkSampleCountFlagBits sampleBits,
                     VmaMemoryUsage memoryUsage);
 

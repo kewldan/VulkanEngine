@@ -1,20 +1,20 @@
+#define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
 #include <stdexcept>
 #include <cassert>
 #include <algorithm>
+#include <plog/Log.h>
 
 #include "graphics/VulkanHelper.h"
 #include "graphics/DeviceHandler.h"
-#include "plog/Log.h"
 #include "graphics/DebugUtils.h"
 
 #define VMA_IMPLEMENTATION
 
-#include "vk_mem_alloc.h"
-#include "common/Engine.h"
+#include <vk_mem_alloc.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -694,7 +694,8 @@ namespace Engine {
     }
 
     AllocatedImage
-    VulkanHelper::createImage(int w, int h, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usageBits,
+    VulkanHelper::createImage(unsigned int w, unsigned int h, VkFormat format, VkImageTiling tiling,
+                              VkImageUsageFlags usageBits,
                               VkSampleCountFlagBits sampleBits,
                               VmaMemoryUsage memoryUsage) {
 

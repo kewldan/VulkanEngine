@@ -8,7 +8,7 @@
 
 namespace Engine {
     template<typename T>
-    class UniformBuffer : public T, Destroyable {
+    class UniformBuffer : public T {
     private:
         std::vector<AllocatedBuffer> uniformAllocatedBuffers;
         std::vector<void *> uniformBuffersMapped;
@@ -50,7 +50,7 @@ namespace Engine {
 
         void upload();
 
-        void destroy() override {
+        void destroy() {
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 vmaUnmapMemory(VulkanContext::allocator, uniformAllocatedBuffers[i].allocation);
                 vmaDestroyBuffer(VulkanContext::allocator, uniformAllocatedBuffers[i].buffer,

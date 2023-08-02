@@ -49,7 +49,7 @@ void Game::init() {
                                  VK_INDEX_TYPE_UINT16);
 
             VkDescriptorSet sets[] = {
-                    uniformCamera.descriptorSets[Engine::VulkanContext::currentFrame]
+                    uniformCamera.getDescriptorSet()
             };
             vkCmdBindDescriptorSets(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame],
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,

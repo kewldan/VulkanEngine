@@ -41,15 +41,20 @@ namespace Engine {
         getDescriptorSet(VkShaderStageFlagBits shaderStage,
                          int binding);
 
-    public:
         std::vector<VkDescriptorSet> descriptorSets;
         VkDescriptorSetLayout layout{};
-
+    public:
         UniformBuffer() = default;
 
         void init(VkShaderStageFlagBits shaderStage, int binding);
 
         void upload();
+
+        VkDescriptorSet getDescriptorSet();
+
+        [[nodiscard]] VkDescriptorSetLayout getLayout() const {
+            return layout;
+        }
 
         void destroy() {
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -59,6 +64,11 @@ namespace Engine {
             }
         }
     };
+
+    template<typename T>
+    VkDescriptorSet UniformBuffer<T>::getDescriptorSet() {
+        return descriptorSets[VulkanContext::currentFrame];
+    }
 
     template<class T>
     void UniformBuffer<T>::init(VkShaderStageFlagBits shaderStage, int binding) {

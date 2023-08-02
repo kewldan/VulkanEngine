@@ -42,7 +42,7 @@ namespace Engine {
         UniformBuffer<T> buffer;
 
         buffer.init(stageFlags, binding);
-        sets.push_back(buffer.layout);
+        sets.push_back(buffer.getLayout());
 
         return buffer;
     }

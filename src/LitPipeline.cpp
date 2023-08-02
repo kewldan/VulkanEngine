@@ -15,7 +15,7 @@ void LitPipeline::build(VkPipelineLayout layout) {
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.pStages = getShaderStages(&pipelineInfo.stageCount, vertex, fragment);
+    pipelineInfo.pStages = getShaderStages(&pipelineInfo.stageCount, vertex.getModule(), fragment.getModule());
     pipelineInfo.pVertexInputState = vertexInputStage;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
@@ -35,16 +35,18 @@ void LitPipeline::build(VkPipelineLayout layout) {
         throw std::runtime_error("failed to create pipeline");
     }
 
-    vkDestroyShaderModule(Engine::VulkanContext::device, vertex, nullptr);
-    vkDestroyShaderModule(Engine::VulkanContext::device, fragment, nullptr);
+    vertex.destroy();
+    fragment.destroy();
 }
 
-LitPipeline::LitPipeline(const char *vertexSourceFile, const char *fragmentSourceFile) : vertexSourceFile(
-        vertexSourceFile), fragmentSourceFile(fragmentSourceFile) {}
+LitPipeline::LitPipeline(const char *vertexSourceFile, const char *fragmentSourceFile) {
+    vertex = Engine::Shader(vertexSourceFile);
+    fragment = Engine::Shader(fragmentSourceFile);
+}
 
 void LitPipeline::load() {
-    Engine::AssetLoader::loadShader(&vertex, vertexSourceFile);
-    Engine::AssetLoader::loadShader(&fragment, fragmentSourceFile);
+    Engine::AssetLoader::loadAsset(vertex);
+    Engine::AssetLoader::loadAsset(fragment);
 }
 
 LitPipeline::LitPipeline() = default;

@@ -51,12 +51,8 @@ namespace Engine {
     private:
         static TaskSolver<4> solver;
 
-        static void loadMeshes(const char *filename, Mesh **meshes, size_t *count);
-
     public:
-        static void loadShader(VkShaderModule *shaderModule, const char *filename);
-
-        static void loadGameObject(GameObject *gameObject, const char *filename);
+        static void loadAsset(Asset &asset);
 
         static void asyncLoad();
     };

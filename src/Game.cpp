@@ -156,8 +156,8 @@ void Game::gui() {
 }
 
 void Game::loadAssets() {
-    Engine::AssetLoader::loadGameObject(&cubeGameObject, "./data/meshes/cube.obj");
-    Engine::AssetLoader::loadGameObject(&planeGameObject, "./data/meshes/plane.obj");
+    Engine::AssetLoader::loadAsset(cubeGameObject);
+    Engine::AssetLoader::loadAsset(planeGameObject);
 
     graphicsPipeline.load();
 
@@ -166,4 +166,7 @@ void Game::loadAssets() {
 
 void Game::preInit() {
     graphicsPipeline = LitPipeline("./data/shaders/vert.spv", "./data/shaders/frag.spv");
+
+    cubeGameObject = Engine::GameObject("./data/meshes/cube.obj");
+    planeGameObject = Engine::GameObject("./data/meshes/plane.obj");
 }

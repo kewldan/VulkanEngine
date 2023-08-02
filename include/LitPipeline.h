@@ -8,7 +8,8 @@ class LitPipeline : public Engine::RenderPipeline {
 private:
     Engine::Shader vertex, fragment;
 public:
-    LitPipeline(const char *vertexSourceFile, const char *fragmentSourceFile);
+    LitPipeline(const char *vertexSourceFile,
+                const char *fragmentSourceFile);
 
     LitPipeline();
 

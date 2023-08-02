@@ -34,6 +34,31 @@ void Game::init() {
 
     pipelineLayout.build();
     graphicsPipeline.build(pipelineLayout.getLayout());
+
+    graphicsPipeline.init([this](Engine::GameObject &object) {
+        uniformModel.color = object.color;
+        uniformModel.model = object.getModel();
+        uniformModel.upload(pipelineLayout.getLayout());
+
+        for (int i = 0; i < object.meshCount; i++) {
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame], 0, 1,
+                                   &object.meshes[i].vertexBuffer.buffer, offsets);
+            vkCmdBindIndexBuffer(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame],
+                                 object.meshes[i].indexBuffer.buffer, 0,
+                                 VK_INDEX_TYPE_UINT16);
+
+            VkDescriptorSet sets[] = {
+                    uniformCamera.descriptorSets[Engine::VulkanContext::currentFrame]
+            };
+            vkCmdBindDescriptorSets(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame],
+                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pipelineLayout.getLayout(), 0, 1,
+                                    sets, 0, nullptr);
+            vkCmdDrawIndexed(Engine::VulkanContext::commandBuffers[Engine::VulkanContext::currentFrame],
+                             object.meshes[i].indexCount, 1, 0, 0, 0);
+        }
+    });
 }
 
 void Game::update() {
@@ -95,40 +120,8 @@ void Game::render(VkCommandBuffer commandBuffer) {
 
     Engine::VulkanHelper::updateViewportScissor();
 
-    uniformModel.color = glm::vec4(1, 1, 0, 1);
-    uniformModel.model = cubeGameObject.getModel();
-    uniformModel.upload(pipelineLayout.getLayout());
-    for (int i = 0; i < cubeGameObject.meshCount; i++) {
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cubeGameObject.meshes[i].vertexBuffer.buffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, cubeGameObject.meshes[i].indexBuffer.buffer, 0,
-                             VK_INDEX_TYPE_UINT16);
-        VkDescriptorSet sets[] = {
-                uniformCamera.descriptorSets[Engine::VulkanContext::currentFrame]
-        };
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout.getLayout(), 0, 1,
-                                sets, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, cubeGameObject.meshes[i].indexCount, 1, 0, 0, 0);
-    }
-
-    uniformModel.color = glm::vec4(1, 0, 0, 1);
-    uniformModel.model = planeGameObject.getModel();
-    uniformModel.upload(pipelineLayout.getLayout());
-    for (int i = 0; i < planeGameObject.meshCount; i++) {
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &planeGameObject.meshes[i].vertexBuffer.buffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, planeGameObject.meshes[i].indexBuffer.buffer, 0,
-                             VK_INDEX_TYPE_UINT16);
-
-        VkDescriptorSet sets[] = {
-                uniformCamera.descriptorSets[Engine::VulkanContext::currentFrame]
-        };
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout.getLayout(), 0, 1,
-                                sets, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, planeGameObject.meshes[i].indexCount, 1, 0, 0, 0);
-    }
+    graphicsPipeline.renderFunction(cubeGameObject);
+    graphicsPipeline.renderFunction(planeGameObject);
 }
 
 void Game::gui() {
@@ -168,5 +161,7 @@ void Game::preInit() {
     graphicsPipeline = LitPipeline("./data/shaders/vert.spv", "./data/shaders/frag.spv");
 
     cubeGameObject = Engine::GameObject("./data/meshes/cube.obj");
+    cubeGameObject.color = glm::vec4(1.f, 0.f, 0.f, 1.f);
     planeGameObject = Engine::GameObject("./data/meshes/plane.obj");
+    planeGameObject.color = glm::vec4(0.5f, 0.5f, 0.5f, 1.f);
 }

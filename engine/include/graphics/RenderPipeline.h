@@ -2,13 +2,19 @@
 #define VULKANENGINE_RENDERPIPELINE_H
 
 #include <vulkan/vulkan.h>
+#include <functional>
 #include "misc/Destroyable.h"
+#include "common/GameObject.h"
 
 namespace Engine {
     class RenderPipeline : public Destroyable {
     protected:
         VkPipeline pipeline = VK_NULL_HANDLE;
     public:
+        std::function<void(GameObject &)> renderFunction;
+
+        virtual void init(const std::function<void(GameObject &)> &func);
+
         virtual VkPipelineShaderStageCreateInfo *
         getShaderStages(uint32_t *count, VkShaderModule vertex, VkShaderModule fragment);
 

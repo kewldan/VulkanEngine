@@ -39,7 +39,8 @@ void LitPipeline::build(VkPipelineLayout layout) {
     fragment.destroy();
 }
 
-LitPipeline::LitPipeline(const char *vertexSourceFile, const char *fragmentSourceFile) {
+LitPipeline::LitPipeline(const char *vertexSourceFile,
+                         const char *fragmentSourceFile) {
     vertex = Engine::Shader(vertexSourceFile);
     fragment = Engine::Shader(fragmentSourceFile);
 }

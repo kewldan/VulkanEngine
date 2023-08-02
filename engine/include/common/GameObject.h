@@ -4,6 +4,7 @@
 #include "physics/Transform.h"
 #include "misc/Destroyable.h"
 #include "io/Asset.h"
+#include <glm/glm.hpp>
 
 namespace Engine {
     class GameObject : public Transform, Destroyable, public Asset {
@@ -12,6 +13,7 @@ namespace Engine {
     public:
         Mesh *meshes{};
         size_t meshCount{};
+        glm::vec4 color = glm::vec4(1, 1, 1, 1);
 
         GameObject();
 

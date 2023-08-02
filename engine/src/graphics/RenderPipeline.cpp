@@ -145,4 +145,8 @@ namespace Engine {
         vkCmdBindPipeline(VulkanContext::commandBuffers[VulkanContext::currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
                           pipeline);
     }
+
+    void RenderPipeline::init(const std::function<void(GameObject &)> &func) {
+        this->renderFunction = func;
+    }
 }

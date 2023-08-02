@@ -23,6 +23,8 @@ namespace Engine {
 
         void load();
 
+        void update();
+
         GameObject *instantiate();
 
         GameObject *instantiate(const char *filename, float mass = 0.f, btCollisionShape *shape = nullptr,

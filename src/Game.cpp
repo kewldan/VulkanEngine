@@ -1,6 +1,5 @@
 #include "Game.h"
 
-#include "io/AssetLoader.h"
 #include "graphics/BufferHandler.h"
 #include "plog/Log.h"
 #include "common/Engine.h"
@@ -94,6 +93,8 @@ void Game::update() {
     uniformCamera.position = glm::vec4(camera.position, 0.f);
 
     uniformCamera.upload();
+
+    world.update();
 }
 
 void Game::destroy() {
@@ -152,7 +153,7 @@ void Game::preInit() {
     cubeGameObject = world.instantiate("./data/meshes/cube.obj", 1.f, new btBoxShape(btVector3(1.f, 1.f, 1.f)));
     cubeGameObject->color = glm::vec4(1.f, 0.f, 0.f, 1.f);
 
-    planeGameObject = world.instantiate("./data/meshes/plane.obj");
+    planeGameObject = world.instantiate("./data/meshes/plane.obj", 0.f, new btBoxShape(btVector3(1.f, 1.f, 1.f)),
+                                        btVector3(0.f, -10.f, 0.f));
     planeGameObject->color = glm::vec4(0.5f, 0.5f, 0.5f, 1.f);
-    planeGameObject->scale = glm::vec3(30.f, 1.f, 30.f);
 }

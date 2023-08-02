@@ -44,7 +44,7 @@ namespace Engine {
     }
 
     GameObject::GameObject(const char *filename, float mass, btCollisionShape *shape, btVector3 position) : filename(
-            filename) {
+            filename), collisionShape(shape) {
         btTransform transform;
         transform.setIdentity();
 
@@ -57,6 +57,12 @@ namespace Engine {
         motionState = new btDefaultMotionState(transform);
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, collisionShape, localInertia);
         rb = new btRigidBody(rbInfo);
+    }
+
+    glm::mat4 GameObject::getModel() const {
+        glm::mat4 mvp;
+        rb->getWorldTransform().getOpenGLMatrix(reinterpret_cast<btScalar *>(&mvp));
+        return mvp;
     }
 
     GameObject::GameObject() = default;

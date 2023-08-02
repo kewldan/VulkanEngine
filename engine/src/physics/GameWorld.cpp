@@ -3,6 +3,7 @@
 #include "BulletCollision/btBulletCollisionCommon.h"
 #include "graphics/RenderPipeline.h"
 #include "io/AssetLoader.h"
+#include "imgui.h"
 
 namespace Engine {
 
@@ -60,5 +61,9 @@ namespace Engine {
         for (GameObject *gameObject: gameObjects) {
             AssetLoader::loadAsset(*gameObject);
         }
+    }
+
+    void GameWorld::update() {
+        dynamicsWorld->stepSimulation(ImGui::GetIO().DeltaTime); //TODO: Don't use IMGUI
     }
 }

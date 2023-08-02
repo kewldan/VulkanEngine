@@ -8,7 +8,7 @@
 #include <btBulletDynamicsCommon.h>
 
 namespace Engine {
-    class GameObject : public Transform, Destroyable, public Asset {
+    class GameObject : public Destroyable, public Asset {
     private:
         const char *filename{};
         btVector3 localInertia;
@@ -30,5 +30,7 @@ namespace Engine {
         void destroy() override;
 
         void load() override;
+
+        glm::mat4 getModel() const;
     };
 }

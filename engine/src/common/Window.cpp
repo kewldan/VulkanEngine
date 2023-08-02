@@ -16,15 +16,15 @@ namespace Engine {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     }
 
-    void Window::cleanup() {
-        glfwDestroyWindow(window);
-    }
-
     bool Window::shouldClose() {
         return glfwWindowShouldClose(window);
     }
 
     GLFWwindow *Window::getHandle() {
         return window;
+    }
+
+    void Window::destroy() {
+        glfwDestroyWindow(window);
     }
 }

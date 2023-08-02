@@ -15,6 +15,6 @@ namespace Engine {
 
         static void render(VkCommandBuffer buffer);
 
-        static void cleanup(VkDevice device);
+        static void destroy();
     };
 }

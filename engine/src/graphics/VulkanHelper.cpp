@@ -9,12 +9,12 @@
 #include "graphics/VulkanHelper.h"
 #include "graphics/DeviceHandler.h"
 #include "plog/Log.h"
-#include "gui/GUI.h"
 #include "graphics/DebugUtils.h"
 
 #define VMA_IMPLEMENTATION
 
 #include "vk_mem_alloc.h"
+#include "common/Engine.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -121,12 +121,8 @@ namespace Engine {
         }
     }
 
-    void VulkanHelper::cleanup() {
+    void VulkanHelper::destroy() {
         cleanupSwapChain();
-
-        GUI::cleanup(VulkanContext::device);
-
-        vkDestroyRenderPass(VulkanContext::device, VulkanContext::renderPass, nullptr);
 
         vkDestroyDescriptorPool(VulkanContext::device, VulkanContext::descriptorPool, nullptr);
 
@@ -137,6 +133,9 @@ namespace Engine {
         }
 
         vkDestroyCommandPool(VulkanContext::device, VulkanContext::commandPool, nullptr);
+
+        vkDestroyRenderPass(VulkanContext::device, VulkanContext::renderPass, nullptr);
+        vkDestroyPipelineCache(VulkanContext::device, VulkanContext::pipelineCache, nullptr);
 
         vmaDestroyAllocator(VulkanContext::allocator);
 
@@ -210,6 +209,7 @@ namespace Engine {
 
         createSwapChain();
         createImageViews();
+        createPipelineCache();
         createRenderPass();
         createColorResource();
         createDepthResource();
@@ -220,7 +220,7 @@ namespace Engine {
         createSyncObjects();
     }
 
-    void VulkanHelper::createSurface() {
+    void VulkanHelper::createSurface() const {
         assert(window != nullptr);
         if (glfwCreateWindowSurface(VulkanContext::instance, window, nullptr, &VulkanContext::surface) != VK_SUCCESS) {
             throw std::runtime_error("failed to create window surface!");
@@ -350,7 +350,7 @@ namespace Engine {
         }
     }
 
-    void VulkanHelper::createRenderPass() {
+    void VulkanHelper::createRenderPass() const {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
         colorAttachment.samples = VulkanContext::msaaSamples;
@@ -487,7 +487,7 @@ namespace Engine {
         }
     }
 
-    void VulkanHelper::idle() const {
+    void VulkanHelper::idle() {
         vkDeviceWaitIdle(VulkanContext::device);
     }
 
@@ -663,7 +663,7 @@ namespace Engine {
         VulkanContext::currentFrame = (VulkanContext::currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    SwapChainSupportDetails VulkanHelper::querySwapChainSupport() const {
+    SwapChainSupportDetails VulkanHelper::querySwapChainSupport() {
         SwapChainSupportDetails details;
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(VulkanContext::physicalDevice, VulkanContext::surface,
@@ -696,7 +696,7 @@ namespace Engine {
     AllocatedImage
     VulkanHelper::createImage(int w, int h, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usageBits,
                               VkSampleCountFlagBits sampleBits,
-                              VmaMemoryUsage memoryUsage) const {
+                              VmaMemoryUsage memoryUsage) {
 
         AllocatedImage img{};
 
@@ -738,7 +738,7 @@ namespace Engine {
     }
 
     VkImageView VulkanHelper::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags,
-                                              uint32_t mipLevels) const {
+                                              uint32_t mipLevels) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
@@ -758,7 +758,7 @@ namespace Engine {
         return imageView;
     }
 
-    VkSampleCountFlagBits VulkanHelper::getMaxUsableSampleCount() const {
+    VkSampleCountFlagBits VulkanHelper::getMaxUsableSampleCount() {
         VkPhysicalDeviceProperties physicalDeviceProperties;
         vkGetPhysicalDeviceProperties(VulkanContext::physicalDevice, &physicalDeviceProperties);
 
@@ -781,6 +781,12 @@ namespace Engine {
                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VulkanContext::msaaSamples,
                                  VMA_MEMORY_USAGE_GPU_ONLY);
         depthImageView = createImageView(depthImage.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+    }
+
+    void VulkanHelper::createPipelineCache() {
+        VkPipelineCacheCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+        vkCreatePipelineCache(VulkanContext::device, &createInfo, nullptr, &VulkanContext::pipelineCache);
     }
 
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,

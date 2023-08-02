@@ -15,4 +15,5 @@ namespace Engine {
     VkQueue VulkanContext::presentQueue = VK_NULL_HANDLE;
     VkExtent2D VulkanContext::swapChainExtent{};
     std::vector<VkCommandBuffer> VulkanContext::commandBuffers{};
+    VkPipelineCache VulkanContext::pipelineCache = VK_NULL_HANDLE;
 }

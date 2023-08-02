@@ -18,5 +18,6 @@ namespace Engine {
         static VkSampleCountFlagBits msaaSamples;
         static int currentFrame;
         static std::vector<VkCommandBuffer> commandBuffers;
+        static VkPipelineCache pipelineCache;
     };
 }

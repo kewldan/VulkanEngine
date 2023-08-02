@@ -5,7 +5,7 @@
 
 namespace Engine {
 
-    class GameWorld {
+    class GameWorld : public Destroyable {
     private:
         std::vector<GameObject *> gameObjects;
     public:
@@ -13,9 +13,9 @@ namespace Engine {
 
         void init();
 
-        void cleanup();
-
         void render();
+
+        void destroy() override;
 
         GameObject *instantiate();
     };

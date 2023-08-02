@@ -9,10 +9,6 @@ namespace Engine {
 
     }
 
-    void GameWorld::cleanup() {
-        
-    }
-
     void GameWorld::render() {
         for (const GameObject *gameObject: gameObjects) {
 
@@ -25,5 +21,9 @@ namespace Engine {
         gameObjects.push_back(gameObject);
 
         return gameObject;
+    }
+
+    void GameWorld::destroy() {
+
     }
 }

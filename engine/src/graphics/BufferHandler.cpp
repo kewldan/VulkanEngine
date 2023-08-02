@@ -3,20 +3,6 @@
 #include "graphics/VulkanContext.h"
 
 namespace Engine {
-    uint32_t BufferHandler::findMemoryType(uint32_t typeFilter,
-                                           VkMemoryPropertyFlags properties) {
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(VulkanContext::physicalDevice, &memProperties);
-
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-                return i;
-            }
-        }
-
-        throw std::runtime_error("failed to find suitable memory type!");
-    }
-
     void
     BufferHandler::copyBuffer(VkBuffer srcBuffer,
                               VkBuffer dstBuffer, VkDeviceSize size) {
@@ -52,35 +38,6 @@ namespace Engine {
         vkFreeCommandBuffers(VulkanContext::device, VulkanContext::commandPool, 1, &commandBuffer);
     }
 
-    void BufferHandler::createBuffer(VkDeviceSize size,
-                                     VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-                                     VkBuffer &buffer, VkDeviceMemory &bufferMemory) {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        if (vkCreateBuffer(VulkanContext::device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create buffer!");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(VulkanContext::device, buffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits,
-                                                   properties);
-
-        if (vkAllocateMemory(VulkanContext::device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate buffer memory!");
-        }
-
-        vkBindBufferMemory(VulkanContext::device, buffer, bufferMemory, 0);
-    }
-
     AllocatedBuffer BufferHandler::createStagingBuffer(VkDeviceSize size) {
         AllocatedBuffer stagingBuffer{};
 
@@ -90,7 +47,9 @@ namespace Engine {
         stagingBufferInfo.size = size;
         stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         VmaAllocationCreateInfo vmaallocInfo = {};
-        vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+        vmaallocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+        vmaallocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
         vmaCreateBuffer(VulkanContext::allocator, &stagingBufferInfo, &vmaallocInfo,
                         &stagingBuffer.buffer,
                         &stagingBuffer.allocation,
@@ -120,7 +79,7 @@ namespace Engine {
         vertexBufferInfo.usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
         VmaAllocationCreateInfo vmaallocInfo = {};
-        vmaallocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        vmaallocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
         vmaCreateBuffer(VulkanContext::allocator, &vertexBufferInfo, &vmaallocInfo,
                         &buffer.buffer,
@@ -139,5 +98,26 @@ namespace Engine {
         vmaDestroyBuffer(VulkanContext::allocator, stagingBuffer.buffer, stagingBuffer.allocation);
 
         return gpuBuffer;
+    }
+
+    AllocatedBuffer BufferHandler::createUniformBuffer(VkDeviceSize size, void **mapped) {
+        AllocatedBuffer uniformBuffer{};
+
+        VkBufferCreateInfo uniformBufferInfo = {};
+        uniformBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        uniformBufferInfo.pNext = nullptr;
+        uniformBufferInfo.size = size;
+        uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        VmaAllocationCreateInfo vmaallocInfo = {};
+        vmaallocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        vmaallocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        vmaCreateBuffer(VulkanContext::allocator, &uniformBufferInfo, &vmaallocInfo,
+                        &uniformBuffer.buffer,
+                        &uniformBuffer.allocation,
+                        nullptr);
+
+        vmaMapMemory(VulkanContext::allocator, uniformBuffer.allocation, mapped);
+
+        return uniformBuffer;
     }
 }

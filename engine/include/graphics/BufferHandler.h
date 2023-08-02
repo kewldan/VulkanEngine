@@ -5,18 +5,11 @@
 namespace Engine {
     class BufferHandler {
     private:
-        static uint32_t
-        findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-    public:
-        static void
-        createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-                     VkMemoryPropertyFlags properties,
-                     VkBuffer &buffer, VkDeviceMemory &bufferMemory);
-
-
         static void copyBuffer(VkBuffer srcBuffer,
                                VkBuffer dstBuffer, VkDeviceSize size);
+
+    public:
+        static AllocatedBuffer createUniformBuffer(VkDeviceSize size, void **mapped);
 
         static AllocatedBuffer createStagingBuffer(VkDeviceSize size);
 

@@ -4,22 +4,43 @@
 #include "graphics/VulkanHelper.h"
 #include "graphics/BufferHandler.h"
 #include <stdexcept>
+#include "misc/Destroyable.h"
 
 namespace Engine {
-    template<class T>
-    class UniformBuffer : public T {
+    template<typename T>
+    class UniformBuffer : public T, Destroyable {
     private:
-        std::vector<VkDeviceMemory> uniformBuffersMemory;
+        std::vector<AllocatedBuffer> uniformAllocatedBuffers;
         std::vector<void *> uniformBuffersMapped;
 
-        VkDescriptorSetLayout getLayout(VkShaderStageFlagBits shaderStage, int binding);
+        VkDescriptorSetLayout getLayout(VkShaderStageFlagBits shaderStage, int binding) {
+            VkDescriptorSetLayoutBinding layoutBinding{};
+            layoutBinding.binding = binding;
+            layoutBinding.descriptorCount = 1;
+            layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            layoutBinding.pImmutableSamplers = nullptr;
+            layoutBinding.stageFlags = shaderStage;
+
+            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            layoutInfo.bindingCount = 1;
+            layoutInfo.pBindings = &layoutBinding;
+            layoutInfo.pNext = nullptr; // Make sure to initialize the pNext field
+
+            VkDescriptorSetLayout descriptorSetLayout{};
+            if (vkCreateDescriptorSetLayout(VulkanContext::device, &layoutInfo, nullptr, &descriptorSetLayout) !=
+                VK_SUCCESS) {
+                throw std::runtime_error("failed to create descriptor set layout!");
+            }
+
+            return descriptorSetLayout;
+        };
 
         std::vector<VkDescriptorSet>
         getDescriptorSet(VkShaderStageFlagBits shaderStage,
                          int binding);
 
     public:
-        std::vector<VkBuffer> uniformBuffers;
         std::vector<VkDescriptorSet> descriptorSets;
         VkDescriptorSetLayout layout{};
 
@@ -29,25 +50,24 @@ namespace Engine {
 
         void upload();
 
-        void cleanup();
+        void destroy() override {
+            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+                vmaUnmapMemory(VulkanContext::allocator, uniformAllocatedBuffers[i].allocation);
+                vmaDestroyBuffer(VulkanContext::allocator, uniformAllocatedBuffers[i].buffer,
+                                 uniformAllocatedBuffers[i].allocation);
+            }
+        }
     };
 
     template<class T>
     void UniformBuffer<T>::init(VkShaderStageFlagBits shaderStage, int binding) {
         VkDeviceSize bufferSize = sizeof(T);
 
-        uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        uniformAllocatedBuffers.resize(MAX_FRAMES_IN_FLIGHT);
         uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
-        for (size_t i = 0; i < 2; i++) {
-            BufferHandler::createBuffer(bufferSize,
-                                        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                        uniformBuffers[i],
-                                        uniformBuffersMemory[i]);
-
-            vkMapMemory(VulkanContext::device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            uniformAllocatedBuffers[i] = BufferHandler::createUniformBuffer(bufferSize, &uniformBuffersMapped[i]);
         }
 
         descriptorSets = getDescriptorSet(shaderStage, binding);
@@ -73,7 +93,7 @@ namespace Engine {
 
         for (size_t j = 0; j < MAX_FRAMES_IN_FLIGHT; j++) {
             VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[j];
+            bufferInfo.buffer = uniformAllocatedBuffers[j].buffer;
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(T);
 
@@ -89,38 +109,6 @@ namespace Engine {
         }
 
         return sets;
-    }
-
-    template<class T>
-    VkDescriptorSetLayout UniformBuffer<T>::getLayout(VkShaderStageFlagBits shaderStage, int binding) {
-        VkDescriptorSetLayoutBinding layoutBinding{};
-        layoutBinding.binding = binding;
-        layoutBinding.descriptorCount = 1;
-        layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        layoutBinding.pImmutableSamplers = nullptr;
-        layoutBinding.stageFlags = shaderStage;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &layoutBinding;
-        layoutInfo.pNext = nullptr; // Make sure to initialize the pNext field
-
-        VkDescriptorSetLayout descriptorSetLayout{};
-        if (vkCreateDescriptorSetLayout(VulkanContext::device, &layoutInfo, nullptr, &descriptorSetLayout) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor set layout!");
-        }
-
-        return descriptorSetLayout;
-    }
-
-    template<class T>
-    void UniformBuffer<T>::cleanup() {
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroyBuffer(VulkanContext::device, uniformBuffers[i], nullptr);
-            vkFreeMemory(VulkanContext::device, uniformBuffersMemory[i], nullptr);
-        }
     }
 
     template<class T>

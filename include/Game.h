@@ -46,7 +46,7 @@ public:
 
     void update() override;
 
-    void cleanup() override;
+    void destroy() override;
 
     void gui() override;
 };

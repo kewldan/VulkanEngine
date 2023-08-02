@@ -11,14 +11,13 @@ namespace Engine {
 
     void
     Mesh::upload() {
-        VkDeviceSize verticesSize = sizeof(Vertex) * vertexCount;
-        vertexBuffer = BufferHandler::createGpuBuffer(verticesSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertices);
-
-        VkDeviceSize indicesSize = sizeof(uint16_t) * indexCount;
-        indexBuffer = BufferHandler::createGpuBuffer(indicesSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indices);
+        vertexBuffer = BufferHandler::createGpuBuffer(sizeof(Vertex) * vertexCount, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                                      vertices);
+        indexBuffer = BufferHandler::createGpuBuffer(sizeof(uint16_t) * indexCount, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                                     indices);
     }
 
-    void Mesh::cleanup() const {
+    void Mesh::destroy() {
         vmaDestroyBuffer(VulkanContext::allocator, vertexBuffer.buffer, vertexBuffer.allocation);
         vmaDestroyBuffer(VulkanContext::allocator, indexBuffer.buffer, indexBuffer.allocation);
     }

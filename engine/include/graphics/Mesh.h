@@ -15,7 +15,7 @@ namespace Engine {
         static VkVertexInputAttributeDescription *getAttributeDescriptions(int *);
     };
 
-    class Mesh {
+    class Mesh : public Destroyable {
     public:
         Vertex *vertices = nullptr;
         uint16_t *indices = nullptr;
@@ -30,6 +30,6 @@ namespace Engine {
 
         void upload();
 
-        void cleanup() const;
+        void destroy() override;
     };
 }

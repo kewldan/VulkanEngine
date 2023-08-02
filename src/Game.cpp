@@ -82,8 +82,8 @@ void Game::update() {
     uniformCamera.upload();
 }
 
-void Game::cleanup() {
-    world.cleanup();
+void Game::destroy() {
+    world.destroy();
     vkDestroyPipelineLayout(Engine::VulkanContext::device, pipelineLayout, nullptr);
     vkDestroyPipeline(Engine::VulkanContext::device, graphicsPipeline, nullptr);
 
@@ -91,14 +91,14 @@ void Game::cleanup() {
         vkDestroyDescriptorSetLayout(Engine::VulkanContext::device, layout, nullptr);
     }
 
-    uniformCamera.cleanup();
-    cubeGameObject.cleanup();
-    planeGameObject.cleanup();
-    window->cleanup();
+    uniformCamera.destroy();
+    cubeGameObject.destroy();
+    planeGameObject.destroy();
+    window->destroy();
 }
 
 void Game::createWindow() {
-    window = std::make_unique<Engine::Window>("VulkanHelper game", 1280, 720);
+    window = std::make_unique<Engine::Window>("Vulkan game", 1280, 720);
 }
 
 void Game::render(VkCommandBuffer commandBuffer) {
@@ -125,9 +125,8 @@ void Game::render(VkCommandBuffer commandBuffer) {
     vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData),
                        &data);
     for (int i = 0; i < cubeGameObject.meshCount; i++) {
-        VkBuffer vertexBuffers[] = {cubeGameObject.meshes[i].vertexBuffer.buffer};
         VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cubeGameObject.meshes[i].vertexBuffer.buffer, offsets);
         vkCmdBindIndexBuffer(commandBuffer, cubeGameObject.meshes[i].indexBuffer.buffer, 0,
                              VK_INDEX_TYPE_UINT16);
         VkDescriptorSet sets[] = {
@@ -144,9 +143,8 @@ void Game::render(VkCommandBuffer commandBuffer) {
     vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData),
                        &data);
     for (int i = 0; i < planeGameObject.meshCount; i++) {
-        VkBuffer vertexBuffers[] = {planeGameObject.meshes[i].vertexBuffer.buffer};
         VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &planeGameObject.meshes[i].vertexBuffer.buffer, offsets);
         vkCmdBindIndexBuffer(commandBuffer, planeGameObject.meshes[i].indexBuffer.buffer, 0,
                              VK_INDEX_TYPE_UINT16);
 
@@ -291,7 +289,8 @@ void Game::createGraphicsPipeline() {
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    if (vkCreateGraphicsPipelines(Engine::VulkanContext::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+    if (vkCreateGraphicsPipelines(Engine::VulkanContext::device, Engine::VulkanContext::pipelineCache, 1, &pipelineInfo,
+                                  nullptr,
                                   &graphicsPipeline) !=
         VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");

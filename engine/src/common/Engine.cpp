@@ -101,17 +101,14 @@ namespace Engine {
             data.cpuWait = time() - t;
         }
 
-        vkHandler.idle();
+        VulkanHelper::idle();
 
         renderThread.join();
         fpsCounter.join();
-
-        application.cleanup();
-        vkHandler.cleanup();
-
-        for (const auto &func: cleanupResources) {
-            func();
-        }
+        
+        GUI::destroy();
+        application.destroy();
+        vkHandler.destroy();
 
         glfwTerminate();
     }
@@ -125,5 +122,4 @@ namespace Engine {
     std::binary_semaphore Engine::smphSignalMainToThread = std::binary_semaphore(0);
     std::thread Engine::renderThread{};
     EngineData Engine::data{};
-    std::vector<std::function<void()>> Engine::cleanupResources{};
 }

@@ -7,6 +7,7 @@
 #include "GLFW/glfw3.h"
 #include <vulkan/vulkan.h>
 #include "vk_mem_alloc.h"
+#include "misc/Destroyable.h"
 
 namespace Engine {
     struct QueueFamilyIndices {
@@ -39,7 +40,7 @@ namespace Engine {
     void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
                                        const VkAllocationCallbacks *pAllocator);
 
-    class VulkanHelper {
+    class VulkanHelper : public Destroyable {
     public:
         std::vector<const char *> validationLayers;
 
@@ -64,7 +65,7 @@ namespace Engine {
                                                             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                                             void *pUserData);
 
-        void createSurface();
+        void createSurface() const;
 
         void createSwapChain();
 
@@ -74,17 +75,19 @@ namespace Engine {
 
         [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
-        [[nodiscard]] SwapChainSupportDetails querySwapChainSupport() const;
+        [[nodiscard]] static SwapChainSupportDetails querySwapChainSupport();
 
         void createImageViews();
 
-        void createRenderPass();
+        void createRenderPass() const;
 
         void createFramebuffers();
 
         void createCommandPool();
 
-        void createCommandBuffers();
+        static void createCommandBuffers();
+
+        static void createPipelineCache();
 
         void createSyncObjects();
 
@@ -92,19 +95,19 @@ namespace Engine {
 
         void cleanupSwapChain();
 
-        void createDescriptorPool();
+        static void createDescriptorPool();
 
         void createColorResource();
 
-        [[nodiscard]] VkSampleCountFlagBits getMaxUsableSampleCount() const;
+        [[nodiscard]] static VkSampleCountFlagBits getMaxUsableSampleCount();
 
-        VkImageView
-        createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const;
+        static VkImageView
+        createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 
-        [[nodiscard]] AllocatedImage
+        [[nodiscard]] static AllocatedImage
         createImage(int w, int h, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usageBits,
                     VkSampleCountFlagBits sampleBits,
-                    VmaMemoryUsage memoryUsage) const;
+                    VmaMemoryUsage memoryUsage);
 
         VkDebugUtilsMessengerEXT debugMessenger{};
         VkSwapchainKHR swapChain{};
@@ -134,9 +137,9 @@ namespace Engine {
 
         void endFrame();
 
-        void idle() const;
+        static void idle();
 
-        void cleanup();
+        void destroy() override;
 
         void init(std::vector<const char *> &extensions);
 

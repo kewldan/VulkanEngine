@@ -2,6 +2,7 @@
 #include "gui/GUI.h"
 #include "plog/Log.h"
 #include "graphics/DebugUtils.h"
+#include "common/Engine.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -83,14 +84,6 @@ namespace Engine {
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), buffer);
     }
 
-    void GUI::cleanup(VkDevice device) {
-        vkDestroyDescriptorPool(device, imguiPool, nullptr);
-
-        ImGui_ImplVulkan_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-    }
-
     VkDescriptorPool GUI::imguiPool = nullptr;
 
     void GUI::begin() {
@@ -102,6 +95,14 @@ namespace Engine {
 
     void GUI::end() {
         ImGui::Render();
+    }
+
+    void GUI::destroy() {
+        vkDestroyDescriptorPool(VulkanContext::device, imguiPool, nullptr);
+
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
     }
 }
 

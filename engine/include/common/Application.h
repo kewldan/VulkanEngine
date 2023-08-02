@@ -7,7 +7,7 @@
 #include <memory>
 
 namespace Engine {
-    class Application {
+    class Application : public Destroyable {
     protected:
         std::unique_ptr<Window> window;
     public:
@@ -25,8 +25,6 @@ namespace Engine {
         virtual void gui() = 0;
 
         virtual void update() = 0;
-
-        virtual void cleanup() = 0;
 
         virtual bool shouldClose();
 

@@ -18,7 +18,6 @@ namespace Engine {
     class Engine {
         static std::thread renderThread;
         static std::binary_semaphore smphSignalMainToThread, smphSignalThreadToMain;
-        static std::vector<std::function<void()>> cleanupResources;
     public:
         static EngineData data;
 

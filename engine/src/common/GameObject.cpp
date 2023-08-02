@@ -9,9 +9,9 @@ namespace Engine {
         }
     }
 
-    void GameObject::cleanup() const {
+    void GameObject::destroy() {
         for (int i = 0; i < meshCount; i++) {
-            meshes[i].cleanup();
+            meshes[i].destroy();
         }
     }
 }

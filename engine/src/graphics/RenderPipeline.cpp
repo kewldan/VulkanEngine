@@ -33,24 +33,24 @@ namespace Engine {
         return rasterizer;
     }
 
-    VkPipelineColorBlendStateCreateInfo RenderPipeline::getColorBlending() {
-        VkPipelineColorBlendAttachmentState colorBlendAttachment[1];
-        colorBlendAttachment[0] = VkPipelineColorBlendAttachmentState();
-        colorBlendAttachment[0].colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-                VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment[0].blendEnable = VK_FALSE;
+    const VkPipelineColorBlendStateCreateInfo *RenderPipeline::getColorBlending() {
+        auto *attachments = new VkPipelineColorBlendAttachmentState[1];
+        attachments[0] = VkPipelineColorBlendAttachmentState();
+        attachments[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                                        VK_COLOR_COMPONENT_A_BIT;
+        attachments[0].blendEnable = VK_FALSE;
 
-        VkPipelineColorBlendStateCreateInfo colorBlending{};
-        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlending.logicOpEnable = VK_FALSE;
-        colorBlending.logicOp = VK_LOGIC_OP_COPY;
-        colorBlending.attachmentCount = 1;
-        colorBlending.pAttachments = colorBlendAttachment;
-        colorBlending.blendConstants[0] = 0.0f;
-        colorBlending.blendConstants[1] = 0.0f;
-        colorBlending.blendConstants[2] = 0.0f;
-        colorBlending.blendConstants[3] = 0.0f;
+        auto *colorBlending = new VkPipelineColorBlendStateCreateInfo();
+        colorBlending->sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending->logicOpEnable = VK_FALSE;
+        colorBlending->logicOp = VK_LOGIC_OP_COPY;
+        colorBlending->attachmentCount = 1;
+        colorBlending->pAttachments = attachments;
+        colorBlending->blendConstants[0] = 0.0f;
+        colorBlending->blendConstants[1] = 0.0f;
+        colorBlending->blendConstants[2] = 0.0f;
+        colorBlending->blendConstants[3] = 0.0f;
+        colorBlending->blendConstants[3] = 0.0f;
 
         return colorBlending;
     }
@@ -76,18 +76,18 @@ namespace Engine {
         return multisampling;
     }
 
-    VkPipelineVertexInputStateCreateInfo RenderPipeline::getVertexInputState() {
-        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    const VkPipelineVertexInputStateCreateInfo *RenderPipeline::getVertexInputState() {
+        auto *vertexInputInfo = new VkPipelineVertexInputStateCreateInfo();
+        vertexInputInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
         auto bindingDescription = Engine::Vertex::getBindingDescription();
         int count = 0;
         auto attributeDescriptions = Engine::Vertex::getAttributeDescriptions(&count);
 
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.vertexAttributeDescriptionCount = count;
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
+        vertexInputInfo->vertexBindingDescriptionCount = 1;
+        vertexInputInfo->vertexAttributeDescriptionCount = count;
+        vertexInputInfo->pVertexBindingDescriptions = bindingDescription;
+        vertexInputInfo->pVertexAttributeDescriptions = attributeDescriptions;
 
         return vertexInputInfo;
     }
@@ -125,7 +125,7 @@ namespace Engine {
         fragShaderStageInfo.pName = "main";
 
         VkPipelineShaderStageCreateInfo *shaderStages = new VkPipelineShaderStageCreateInfo[]{vertShaderStageInfo,
-                                                                                               fragShaderStageInfo};
+                                                                                              fragShaderStageInfo};
 
         *count = 2;
 

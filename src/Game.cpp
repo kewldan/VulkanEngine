@@ -186,7 +186,6 @@ void Game::gui() {
 
 void Game::createGraphicsPipeline() {
     LitPipeline litPipeline(vertShaderModule, fragShaderModule);
-
     graphicsPipeline = litPipeline.build(pipelineLayout);
 
     vkDestroyShaderModule(Engine::VulkanContext::device, fragShaderModule, nullptr);

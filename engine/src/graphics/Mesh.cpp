@@ -24,11 +24,11 @@ namespace Engine {
 
     Mesh::Mesh() = default;
 
-    VkVertexInputBindingDescription Vertex::getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    VkVertexInputBindingDescription *Vertex::getBindingDescription() {
+        auto *bindingDescription = new VkVertexInputBindingDescription();
+        bindingDescription->binding = 0;
+        bindingDescription->stride = sizeof(Vertex);
+        bindingDescription->inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         return bindingDescription;
     }

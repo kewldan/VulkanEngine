@@ -15,13 +15,13 @@ namespace Engine {
 
         virtual VkPipelineRasterizationStateCreateInfo getRasterizer();
 
-        virtual VkPipelineColorBlendStateCreateInfo getColorBlending();
+        virtual const VkPipelineColorBlendStateCreateInfo *getColorBlending();
 
         virtual VkPipelineDynamicStateCreateInfo getDynamicStates();
 
         virtual VkPipelineMultisampleStateCreateInfo getMultisampling(VkSampleCountFlagBits msaa);
 
-        virtual VkPipelineVertexInputStateCreateInfo getVertexInputState();
+        virtual const VkPipelineVertexInputStateCreateInfo *getVertexInputState();
 
         virtual VkPipelineDepthStencilStateCreateInfo getDepthState();
 

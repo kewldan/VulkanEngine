@@ -10,7 +10,7 @@ namespace Engine {
         glm::vec3 normal;
         glm::vec2 uv;
 
-        static VkVertexInputBindingDescription getBindingDescription();
+        static VkVertexInputBindingDescription *getBindingDescription();
 
         static VkVertexInputAttributeDescription *getAttributeDescriptions(int *);
     };

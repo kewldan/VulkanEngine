@@ -2,9 +2,12 @@
 #define VULKANENGINE_RENDERPIPELINE_H
 
 #include <vulkan/vulkan.h>
+#include "misc/Destroyable.h"
 
 namespace Engine {
-    class RenderPipeline {
+    class RenderPipeline : public Destroyable {
+    protected:
+        VkPipeline pipeline = VK_NULL_HANDLE;
     public:
         virtual VkPipelineShaderStageCreateInfo *
         getShaderStages(uint32_t *count, VkShaderModule vertex, VkShaderModule fragment);
@@ -25,7 +28,13 @@ namespace Engine {
 
         virtual VkPipelineDepthStencilStateCreateInfo getDepthState();
 
-        virtual VkPipeline build(VkPipelineLayout layout) = 0;
+        virtual void build(VkPipelineLayout layout) = 0;
+
+        [[nodiscard]] virtual VkPipeline getPipeline() const;
+
+        virtual void bind();
+
+        void destroy() override;
     };
 }
 

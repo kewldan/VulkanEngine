@@ -144,5 +144,7 @@ namespace Engine {
         void init(std::vector<const char *> &extensions);
 
         void createDepthResource();
+
+        static void updateViewportScissor();
     };
 }

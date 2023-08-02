@@ -1,10 +1,11 @@
 #pragma once
 
 #include <vector>
-#include "graphics/VulkanHelper.h"
-#include "graphics/BufferHandler.h"
+#include "VulkanHelper.h"
+#include "BufferHandler.h"
 #include <stdexcept>
 #include "misc/Destroyable.h"
+#include "VulkanContext.h"
 
 namespace Engine {
     template<typename T>

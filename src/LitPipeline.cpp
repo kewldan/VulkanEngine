@@ -1,8 +1,9 @@
 #include <stdexcept>
 #include "LitPipeline.h"
 #include "graphics/VulkanContext.h"
+#include "io/AssetLoader.h"
 
-VkPipeline LitPipeline::build(VkPipelineLayout layout) {
+void LitPipeline::build(VkPipelineLayout layout) {
     auto vertexInputStage = getVertexInputState();
     auto multisampler = getMultisampling(Engine::VulkanContext::msaaSamples);
     auto colorBlending = getColorBlending();
@@ -28,16 +29,22 @@ VkPipeline LitPipeline::build(VkPipelineLayout layout) {
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    VkPipeline pipeline = VK_NULL_HANDLE;
-
     if (vkCreateGraphicsPipelines(Engine::VulkanContext::device, Engine::VulkanContext::pipelineCache, 1, &pipelineInfo,
                                   nullptr,
                                   &pipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline");
     }
 
-    return pipeline;
+    vkDestroyShaderModule(Engine::VulkanContext::device, vertex, nullptr);
+    vkDestroyShaderModule(Engine::VulkanContext::device, fragment, nullptr);
 }
 
-LitPipeline::LitPipeline(const VkShaderModule vertex, const VkShaderModule fragment) : vertex(vertex),
-                                                                                       fragment(fragment) {}
+LitPipeline::LitPipeline(const char *vertexSourceFile, const char *fragmentSourceFile) : vertexSourceFile(
+        vertexSourceFile), fragmentSourceFile(fragmentSourceFile) {}
+
+void LitPipeline::load() {
+    Engine::AssetLoader::loadShader(&vertex, vertexSourceFile);
+    Engine::AssetLoader::loadShader(&fragment, fragmentSourceFile);
+}
+
+LitPipeline::LitPipeline() = default;

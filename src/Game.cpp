@@ -6,9 +6,7 @@
 #include "common/Engine.h"
 #include "graphics/VulkanContext.h"
 #include "graphics/RenderPipeline.h"
-#include "LitPipeline.h"
 
-#include <stdexcept>
 #include <algorithm>
 #include <thread>
 #include <imgui.h>
@@ -24,25 +22,18 @@ void Game::init() {
         }
     });
 
-    Engine::InputManager::keyPressListeners.emplace_back([](int key) {
-        if (key == GLFW_KEY_F) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
-    });
-
     world.init();
 
     planeGameObject.scale = glm::vec3(30.f, 1.f, 30.f);
 
-    uniformCamera.init(VK_SHADER_STAGE_VERTEX_BIT, 0);
-
-    descriptorSetLayouts.push_back(uniformCamera.layout);
+    uniformCamera = pipelineLayout.createUniformBuffer<Uniform_CameraData>(VK_SHADER_STAGE_VERTEX_BIT, 0);
+    uniformModel = pipelineLayout.createPushBuffer<Uniform_ModelData>(VK_SHADER_STAGE_VERTEX_BIT);
 
     camera.position = glm::vec3(2.f, 2.f, 2.f);
     camera.rotation = glm::vec3(0.6f, -0.8f, 0.f);
 
-    createPipelineLayout();
-    createGraphicsPipeline();
+    pipelineLayout.build();
+    graphicsPipeline.build(pipelineLayout.getLayout());
 }
 
 void Game::update() {
@@ -86,12 +77,8 @@ void Game::update() {
 
 void Game::destroy() {
     world.destroy();
-    vkDestroyPipelineLayout(Engine::VulkanContext::device, pipelineLayout, nullptr);
-    vkDestroyPipeline(Engine::VulkanContext::device, graphicsPipeline, nullptr);
-
-    for (VkDescriptorSetLayout layout: descriptorSetLayouts) {
-        vkDestroyDescriptorSetLayout(Engine::VulkanContext::device, layout, nullptr);
-    }
+    pipelineLayout.destroy();
+    graphicsPipeline.destroy();
 
     uniformCamera.destroy();
     cubeGameObject.destroy();
@@ -104,28 +91,13 @@ void Game::createWindow() {
 }
 
 void Game::render(VkCommandBuffer commandBuffer) {
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    graphicsPipeline.bind();
 
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = (float) Engine::VulkanContext::swapChainExtent.width;
-    viewport.height = (float) Engine::VulkanContext::swapChainExtent.height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    Engine::VulkanHelper::updateViewportScissor();
 
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = Engine::VulkanContext::swapChainExtent;
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-    static Uniform_ModelData data{};
-
-    data.color = glm::vec4(1, 1, 0, 1);
-    data.model = cubeGameObject.getModel();
-    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData),
-                       &data);
+    uniformModel.color = glm::vec4(1, 1, 0, 1);
+    uniformModel.model = cubeGameObject.getModel();
+    uniformModel.upload(pipelineLayout.getLayout());
     for (int i = 0; i < cubeGameObject.meshCount; i++) {
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cubeGameObject.meshes[i].vertexBuffer.buffer, offsets);
@@ -135,15 +107,14 @@ void Game::render(VkCommandBuffer commandBuffer) {
                 uniformCamera.descriptorSets[Engine::VulkanContext::currentFrame]
         };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout, 0, 1,
+                                pipelineLayout.getLayout(), 0, 1,
                                 sets, 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, cubeGameObject.meshes[i].indexCount, 1, 0, 0, 0);
     }
 
-    data.color = glm::vec4(1, 0, 0, 1);
-    data.model = planeGameObject.getModel();
-    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData),
-                       &data);
+    uniformModel.color = glm::vec4(1, 0, 0, 1);
+    uniformModel.model = planeGameObject.getModel();
+    uniformModel.upload(pipelineLayout.getLayout());
     for (int i = 0; i < planeGameObject.meshCount; i++) {
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &planeGameObject.meshes[i].vertexBuffer.buffer, offsets);
@@ -154,7 +125,7 @@ void Game::render(VkCommandBuffer commandBuffer) {
                 uniformCamera.descriptorSets[Engine::VulkanContext::currentFrame]
         };
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayout, 0, 1,
+                                pipelineLayout.getLayout(), 0, 1,
                                 sets, 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, planeGameObject.meshes[i].indexCount, 1, 0, 0, 0);
     }
@@ -184,40 +155,15 @@ void Game::gui() {
     ImGui::PopStyleVar();
 }
 
-void Game::createGraphicsPipeline() {
-    LitPipeline litPipeline(vertShaderModule, fragShaderModule);
-    graphicsPipeline = litPipeline.build(pipelineLayout);
-
-    vkDestroyShaderModule(Engine::VulkanContext::device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(Engine::VulkanContext::device, vertShaderModule, nullptr);
-}
-
-void Game::createPipelineLayout() {
-    VkPushConstantRange push_constant = {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Uniform_ModelData)};
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pPushConstantRanges = &push_constant;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-
-    if (vkCreatePipelineLayout(Engine::VulkanContext::device, &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
-        VK_SUCCESS) {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
-}
-
 void Game::loadAssets() {
     Engine::AssetLoader::loadGameObject(&cubeGameObject, "./data/meshes/cube.obj");
     Engine::AssetLoader::loadGameObject(&planeGameObject, "./data/meshes/plane.obj");
 
-    Engine::AssetLoader::loadShader(&vertShaderModule, "./data/shaders/vert.spv");
-    Engine::AssetLoader::loadShader(&fragShaderModule, "./data/shaders/frag.spv");
+    graphicsPipeline.load();
 
     Engine::AssetLoader::asyncLoad();
 }
 
 void Game::preInit() {
-
+    graphicsPipeline = LitPipeline("./data/shaders/vert.spv", "./data/shaders/frag.spv");
 }

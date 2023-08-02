@@ -1,11 +1,12 @@
 #pragma once
 
 #include "common/Application.h"
-#include "graphics/UniformBuffer.h"
 #include "camera/Camera3D.h"
 #include "graphics/VulkanHelper.h"
 #include <vector>
 #include "physics/GameWorld.h"
+#include "graphics/RenderPipelineLayout.h"
+#include "LitPipeline.h"
 
 struct Uniform_CameraData {
     glm::mat4 view;
@@ -21,18 +22,12 @@ struct Uniform_ModelData {
 class Game : public Engine::Application {
 private:
     Engine::GameObject cubeGameObject, planeGameObject;
-    VkPipelineLayout pipelineLayout{};
-    VkPipeline graphicsPipeline{};
+    Engine::RenderPipelineLayout pipelineLayout{};
+    LitPipeline graphicsPipeline;
     Engine::UniformBuffer<Uniform_CameraData> uniformCamera;
+    Engine::PushBuffer<Uniform_ModelData> uniformModel;
     Engine::Camera3D camera;
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
     Engine::GameWorld world;
-    VkShaderModule vertShaderModule, fragShaderModule;
-
-    void createGraphicsPipeline();
-
-    void createPipelineLayout();
-
 public:
     void createWindow() override;
 

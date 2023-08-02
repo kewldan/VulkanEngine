@@ -5,11 +5,16 @@
 
 class LitPipeline : public Engine::RenderPipeline {
 private:
-    VkShaderModule vertex, fragment;
+    VkShaderModule vertex = VK_NULL_HANDLE, fragment = VK_NULL_HANDLE;
+    const char *vertexSourceFile{}, *fragmentSourceFile{};
 public:
-    LitPipeline(const VkShaderModule vertex, const VkShaderModule fragment);
+    LitPipeline(const char *vertexSourceFile, const char *fragmentSourceFile);
 
-    VkPipeline build(VkPipelineLayout layout) override;
+    LitPipeline();
+
+    void build(VkPipelineLayout layout) override;
+
+    void load();
 };
 
 

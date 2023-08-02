@@ -782,6 +782,22 @@ namespace Engine {
         vkCreatePipelineCache(VulkanContext::device, &createInfo, nullptr, &VulkanContext::pipelineCache);
     }
 
+    void VulkanHelper::updateViewportScissor() {
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float) Engine::VulkanContext::swapChainExtent.width;
+        viewport.height = (float) Engine::VulkanContext::swapChainExtent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(VulkanContext::commandBuffers[VulkanContext::currentFrame], 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = Engine::VulkanContext::swapChainExtent;
+        vkCmdSetScissor(VulkanContext::commandBuffers[VulkanContext::currentFrame], 0, 1, &scissor);
+    }
+
     VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
                                           const VkAllocationCallbacks *pAllocator,
                                           VkDebugUtilsMessengerEXT *pDebugMessenger) {

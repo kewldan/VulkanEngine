@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include "graphics/RenderPipeline.h"
 #include "graphics/Mesh.h"
+#include "graphics/VulkanContext.h"
 
 namespace Engine {
 
@@ -124,11 +125,24 @@ namespace Engine {
         fragShaderStageInfo.module = fragment;
         fragShaderStageInfo.pName = "main";
 
-        VkPipelineShaderStageCreateInfo *shaderStages = new VkPipelineShaderStageCreateInfo[]{vertShaderStageInfo,
-                                                                                              fragShaderStageInfo};
+        auto *shaderStages = new VkPipelineShaderStageCreateInfo[]{vertShaderStageInfo,
+                                                                   fragShaderStageInfo};
 
         *count = 2;
 
         return shaderStages;
+    }
+
+    VkPipeline RenderPipeline::getPipeline() const {
+        return pipeline;
+    }
+
+    void RenderPipeline::destroy() {
+        vkDestroyPipeline(VulkanContext::device, pipeline, nullptr);
+    }
+
+    void RenderPipeline::bind() {
+        vkCmdBindPipeline(VulkanContext::commandBuffers[VulkanContext::currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pipeline);
     }
 }

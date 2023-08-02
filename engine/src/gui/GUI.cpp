@@ -35,7 +35,9 @@ namespace Engine {
 
         vkCreateDescriptorPool(VulkanContext::device, &pool_info, nullptr, &imguiPool);
 
+#ifndef NDEBUG
         DebugUtils::setObjectName(imguiPool, "ImGui descriptor pool");
+#endif
 
         ImGui::CreateContext();
 

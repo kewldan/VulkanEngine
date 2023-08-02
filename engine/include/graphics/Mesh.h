@@ -19,14 +19,14 @@ namespace Engine {
     public:
         Vertex *vertices = nullptr;
         uint16_t *indices = nullptr;
-        int indexCount = 0;
-        int vertexCount = 0;
+        size_t indexCount = 0;
+        size_t vertexCount = 0;
         AllocatedBuffer vertexBuffer{};
         AllocatedBuffer indexBuffer{};
 
         Mesh();
 
-        Mesh(Vertex *vertices, uint16_t *indices, int indexCount, int vertexCount);
+        Mesh(Vertex *vertices, uint16_t *indices, size_t indexCount, size_t vertexCount);
 
         void upload();
 

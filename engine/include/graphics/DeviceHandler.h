@@ -8,9 +8,9 @@ namespace Engine {
         static QueueFamilyIndices findQueueFamilies();
 
     public:
-        static VkPhysicalDevice pickPhysicalDevice();
+        static void pickPhysicalDevice();
 
-        static VkDevice
+        static void
         createLogicalDevice(std::vector<const char *> &deviceExtensions,
                             bool enableValidationLayers, std::vector<const char *> &validationLayers,
                             QueueFamilyIndices indices);

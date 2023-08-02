@@ -83,7 +83,7 @@ namespace Engine {
     void VulkanHelper::createInstance(std::vector<const char *> extensions) {
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Hello Triangle";
+        appInfo.pApplicationName = "Vulkan game";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "No Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -187,15 +187,7 @@ namespace Engine {
         createSurface();
 
         DeviceHandler::getDevices(&indices,
-                                  std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-                                                                 VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-                                                                 VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-                                                                 VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-                                                                 VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-                                                                 VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-                                                                 VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-                                                                 VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
-                                  },
+                                  std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME},
                                   enableValidationLayers, validationLayers);
 
         VmaAllocatorCreateInfo allocatorInfo = {};

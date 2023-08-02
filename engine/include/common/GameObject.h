@@ -8,7 +8,7 @@ namespace Engine {
     class GameObject : public Transform, Destroyable {
     public:
         Mesh *meshes{};
-        int meshCount{};
+        size_t meshCount{};
 
         GameObject();
 

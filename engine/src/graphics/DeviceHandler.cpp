@@ -1,17 +1,15 @@
 #include <vector>
 #include <set>
-#include <cassert>
 #include <stdexcept>
 #include "graphics/DeviceHandler.h"
 #include "graphics/VulkanContext.h"
+#include "plog/Log.h"
 
 namespace Engine {
-    VkDevice
+    void
     DeviceHandler::createLogicalDevice(std::vector<const char *> &deviceExtensions,
                                        bool enableValidationLayers, std::vector<const char *> &validationLayers,
                                        QueueFamilyIndices indices) {
-        VkDevice device;
-
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
@@ -45,36 +43,35 @@ namespace Engine {
             createInfo.enabledLayerCount = 0;
         }
 
-        if (vkCreateDevice(VulkanContext::physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+        if (vkCreateDevice(VulkanContext::physicalDevice, &createInfo, nullptr, &VulkanContext::device) != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
 
-        vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &VulkanContext::graphicsQueue);
-        vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &VulkanContext::presentQueue);
-
-        return device;
+        vkGetDeviceQueue(VulkanContext::device, indices.graphicsFamily.value(), 0, &VulkanContext::graphicsQueue);
+        vkGetDeviceQueue(VulkanContext::device, indices.presentFamily.value(), 0, &VulkanContext::presentQueue);
     }
 
-    VkPhysicalDevice
+    void
     DeviceHandler::pickPhysicalDevice() {
-        VkPhysicalDevice physicalDevice;
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(VulkanContext::instance, &deviceCount, nullptr);
+        if (vkEnumeratePhysicalDevices(VulkanContext::instance, &deviceCount, nullptr) != VK_SUCCESS) {
+            throw std::runtime_error("failed to enumerate physical devices!");
+        }
 
         if (deviceCount == 0) {
             throw std::runtime_error("failed to find GPUs with VulkanHelper support!");
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(VulkanContext::instance, &deviceCount, devices.data());
-
-        physicalDevice = devices[0];
-
-        if (physicalDevice == VK_NULL_HANDLE) {
-            throw std::runtime_error("failed to find a suitable GPU!");
+        if (vkEnumeratePhysicalDevices(VulkanContext::instance, &deviceCount, devices.data()) != VK_SUCCESS) {
+            throw std::runtime_error("failed to enumerate physical devices!");
         }
 
-        return physicalDevice;
+        VulkanContext::physicalDevice = devices[0];
+
+        if (VulkanContext::physicalDevice == VK_NULL_HANDLE) {
+            throw std::runtime_error("failed to find a suitable GPU!");
+        }
     }
 
     QueueFamilyIndices DeviceHandler::findQueueFamilies() {
@@ -115,10 +112,12 @@ namespace Engine {
     DeviceHandler::getDevices(QueueFamilyIndices *familyIndices,
                               std::vector<const char *> &deviceExtensions, bool enableValidationLayers,
                               std::vector<const char *> &validationLayers) {
-        VulkanContext::physicalDevice = pickPhysicalDevice();
+
+        pickPhysicalDevice();
+
         *familyIndices = findQueueFamilies();
 
-        VulkanContext::device = createLogicalDevice(deviceExtensions, enableValidationLayers, validationLayers,
-                                                    *familyIndices);
+        createLogicalDevice(deviceExtensions, enableValidationLayers, validationLayers,
+                            *familyIndices);
     }
 }

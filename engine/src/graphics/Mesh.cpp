@@ -4,10 +4,10 @@
 #include "graphics/VulkanContext.h"
 
 namespace Engine {
-    Mesh::Mesh(Vertex *vertices, uint16_t *indices, int indexCount, int vertexCount) : vertices(vertices),
-                                                                                       indices(indices),
-                                                                                       indexCount(indexCount),
-                                                                                       vertexCount(vertexCount) {}
+    Mesh::Mesh(Vertex *vertices, uint16_t *indices, size_t indexCount, size_t vertexCount) : vertices(vertices),
+                                                                                             indices(indices),
+                                                                                             indexCount(indexCount),
+                                                                                             vertexCount(vertexCount) {}
 
     void
     Mesh::upload() {

@@ -3,10 +3,10 @@
 #include "io/Filesystem.h"
 #include "graphics/Mesh.h"
 #include "OBJ_Loader.h"
-#include "plog/Log.h"
+#include "graphics/VulkanContext.h"
 
 namespace Engine {
-    void AssetLoader::loadMeshes(const char *filename, Mesh **meshes, int *count) {
+    void AssetLoader::loadMeshes(const char *filename, Mesh **meshes, size_t *count) {
         assert(filename != nullptr);
         assert(count != nullptr);
         assert(meshes != nullptr);
@@ -38,13 +38,12 @@ namespace Engine {
         }
     }
 
-    void AssetLoader::loadShader(VkDevice device, VkShaderModule *shaderModule, const char *filename) {
-        assert(device != VK_NULL_HANDLE);
+    void AssetLoader::loadShader(VkShaderModule *shaderModule, const char *filename) {
         assert(filename != nullptr);
         assert(shaderModule != nullptr);
 
         auto *task = new AssetTask;
-        task->load = [device, filename, shaderModule]() { // Filename is not reference because filename is pointer and should be copy
+        task->load = [filename, shaderModule]() { // Filename is not reference because filename is pointer and should be copy
             size_t length;
             auto code = Filesystem::readFile(filename, &length);
 
@@ -53,21 +52,20 @@ namespace Engine {
             createInfo.codeSize = length;
             createInfo.pCode = reinterpret_cast<const uint32_t *>(code);
 
-            if (vkCreateShaderModule(device, &createInfo, nullptr, shaderModule) != VK_SUCCESS) {
+            if (vkCreateShaderModule(VulkanContext::device, &createInfo, nullptr, shaderModule) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create shader module!");
             }
         };
         solver.addTask(task);
     }
 
-    void AssetLoader::loadGameObject(VmaAllocator allocator, GameObject &gameObject, const char *filename) {
-        assert(allocator != nullptr);
+    void AssetLoader::loadGameObject(GameObject *gameObject, const char *filename) {
         assert(filename != nullptr);
 
         auto *layout = new AssetTask;
-        layout->load = [filename, &gameObject]() { // Filename is not reference because filename is pointer and should be copy
-            loadMeshes(filename, &gameObject.meshes, &gameObject.meshCount);
-            gameObject.upload();
+        layout->load = [filename, gameObject]() { // Filename is not reference because filename is pointer and should be copy
+            loadMeshes(filename, &gameObject->meshes, &gameObject->meshCount);
+            gameObject->upload();
         };
         solver.addTask(layout);
     }

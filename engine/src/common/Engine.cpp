@@ -104,7 +104,7 @@ namespace Engine {
             data.cpuWait = time() - t;
         }
 
-        VulkanHelper::idle();
+        vkDeviceWaitIdle(VulkanContext::device);
 
         renderThread.join();
         fpsCounter.join();

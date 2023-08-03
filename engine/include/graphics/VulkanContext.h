@@ -3,6 +3,7 @@
 #include "VulkanHelper.h"
 #include "CommandBuffers.h"
 #include "RenderPass.h"
+#include "SwapChain.h"
 
 namespace Engine {
     class VulkanContext {
@@ -21,5 +22,7 @@ namespace Engine {
         static int currentFrame;
         static CommandBuffers commandBuffers;
         static VkPipelineCache pipelineCache;
+        static SwapChain swapchain;
+        static QueueFamilyIndices indices;
     };
 }

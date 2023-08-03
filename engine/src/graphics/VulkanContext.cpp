@@ -16,4 +16,6 @@ namespace Engine {
     VkExtent2D VulkanContext::swapChainExtent{};
     CommandBuffers VulkanContext::commandBuffers;
     VkPipelineCache VulkanContext::pipelineCache = VK_NULL_HANDLE;
+    SwapChain VulkanContext::swapchain{};
+    QueueFamilyIndices VulkanContext::indices{};
 }

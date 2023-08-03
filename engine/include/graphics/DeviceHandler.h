@@ -12,12 +12,10 @@ namespace Engine {
 
         static void
         createLogicalDevice(std::vector<const char *> &deviceExtensions,
-                            bool enableValidationLayers, std::vector<const char *> &validationLayers,
-                            QueueFamilyIndices indices);
+                            bool enableValidationLayers, std::vector<const char *> &validationLayers);
 
         static void
-        getDevices(QueueFamilyIndices *familyIndices,
-                   std::vector<const char *> &deviceExtensions, bool enableValidationLayers,
+        getDevices(std::vector<const char *> &deviceExtensions, bool enableValidationLayers,
                    std::vector<const char *> &validationLayers);
     };
 }

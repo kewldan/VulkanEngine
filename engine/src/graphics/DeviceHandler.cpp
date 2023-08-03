@@ -8,10 +8,10 @@
 namespace Engine {
     void
     DeviceHandler::createLogicalDevice(std::vector<const char *> &deviceExtensions,
-                                       bool enableValidationLayers, std::vector<const char *> &validationLayers,
-                                       QueueFamilyIndices indices) {
+                                       bool enableValidationLayers, std::vector<const char *> &validationLayers) {
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        std::set<uint32_t> uniqueQueueFamilies = {VulkanContext::indices.graphicsFamily.value(),
+                                                  VulkanContext::indices.presentFamily.value()};
 
         float queuePriority = 1.0f;
         for (uint32_t queueFamily: uniqueQueueFamilies) {
@@ -47,8 +47,10 @@ namespace Engine {
             throw std::runtime_error("failed to create logical device!");
         }
 
-        vkGetDeviceQueue(VulkanContext::device, indices.graphicsFamily.value(), 0, &VulkanContext::graphicsQueue);
-        vkGetDeviceQueue(VulkanContext::device, indices.presentFamily.value(), 0, &VulkanContext::presentQueue);
+        vkGetDeviceQueue(VulkanContext::device, VulkanContext::indices.graphicsFamily.value(), 0,
+                         &VulkanContext::graphicsQueue);
+        vkGetDeviceQueue(VulkanContext::device, VulkanContext::indices.presentFamily.value(), 0,
+                         &VulkanContext::presentQueue);
     }
 
     void
@@ -109,15 +111,13 @@ namespace Engine {
     }
 
     void
-    DeviceHandler::getDevices(QueueFamilyIndices *familyIndices,
-                              std::vector<const char *> &deviceExtensions, bool enableValidationLayers,
+    DeviceHandler::getDevices(std::vector<const char *> &deviceExtensions, bool enableValidationLayers,
                               std::vector<const char *> &validationLayers) {
 
         pickPhysicalDevice();
 
-        *familyIndices = findQueueFamilies();
+        VulkanContext::indices = findQueueFamilies();
 
-        createLogicalDevice(deviceExtensions, enableValidationLayers, validationLayers,
-                            *familyIndices);
+        createLogicalDevice(deviceExtensions, enableValidationLayers, validationLayers);
     }
 }

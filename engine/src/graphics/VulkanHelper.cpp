@@ -122,7 +122,7 @@ namespace Engine {
     }
 
     void VulkanHelper::destroy() {
-        cleanupSwapChain();
+        VulkanContext::swapchain.destroy();
 
         vkDestroyDescriptorPool(VulkanContext::device, VulkanContext::descriptorPool, nullptr);
 
@@ -186,8 +186,7 @@ namespace Engine {
 
         createSurface();
 
-        DeviceHandler::getDevices(&indices,
-                                  std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME},
+        DeviceHandler::getDevices(std::vector<const char *>() = {VK_KHR_SWAPCHAIN_EXTENSION_NAME},
                                   enableValidationLayers, validationLayers);
 
         VmaAllocatorCreateInfo allocatorInfo = {};
@@ -199,13 +198,10 @@ namespace Engine {
         VulkanContext::msaaSamples = getMaxUsableSampleCount();
         PLOGD << "Using MSAAx" << VulkanContext::msaaSamples;
 
-        createSwapChain();
-        createImageViews();
+        VulkanContext::swapchain.createImages(window);
         createPipelineCache();
-        VulkanContext::renderPass.init(swapChainImageFormat);
-        createColorResource();
-        createDepthResource();
-        createFramebuffers();
+        VulkanContext::renderPass.init(VulkanContext::swapchain.getFormat());
+        VulkanContext::swapchain.createResources();
         createCommandPool();
         createDescriptorPool();
         VulkanContext::commandBuffers.init();
@@ -219,163 +215,15 @@ namespace Engine {
         }
     }
 
-    void VulkanHelper::createSwapChain() {
-        swapChainSupport = querySwapChainSupport();
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
-
-        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-        if (swapChainSupport.capabilities.maxImageCount > 0 &&
-            imageCount > swapChainSupport.capabilities.maxImageCount) {
-            imageCount = swapChainSupport.capabilities.maxImageCount;
-        }
-
-        VkSwapchainCreateInfoKHR createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = VulkanContext::surface;
-
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
-        if (indices.graphicsFamily != indices.presentFamily) {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices = queueFamilyIndices;
-        } else {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        }
-
-        createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
-
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-        if (vkCreateSwapchainKHR(VulkanContext::device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create swap chain!");
-        }
-
-        vkGetSwapchainImagesKHR(VulkanContext::device, swapChain, &imageCount, nullptr);
-        swapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(VulkanContext::device, swapChain, &imageCount, swapChainImages.data());
-
-        swapChainImageFormat = surfaceFormat.format;
-        VulkanContext::swapChainExtent = extent;
-    }
-
-    VkSurfaceFormatKHR VulkanHelper::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
-        for (const auto &availableFormat: availableFormats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
-                availableFormat.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT) {
-                return availableFormat;
-            }
-        }
-
-        PLOGW << "Swap surface format \"VK_FORMAT_B8G8R8A8_SRGB & VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT\" is not supported, using 1st available";
-
-        return availableFormats[0];
-    }
-
-    VkPresentModeKHR VulkanHelper::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {
-        for (const auto &availablePresentMode: availablePresentModes) {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-                return availablePresentMode;
-            }
-        }
-
-        PLOGW << "Swap present mode \"VK_PRESENT_MODE_MAILBOX_KHR\" is not supported, using \"VK_PRESENT_MODE_FIFO_KHR\"";
-        return VK_PRESENT_MODE_FIFO_KHR;
-    }
-
-    VkExtent2D VulkanHelper::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) const {
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-            return capabilities.currentExtent;
-        } else {
-            int width, height;
-            glfwGetFramebufferSize(window, &width, &height);
-
-            VkExtent2D actualExtent = {
-                    static_cast<uint32_t>(width),
-                    static_cast<uint32_t>(height)
-            };
-
-            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
-                                            capabilities.maxImageExtent.width);
-            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
-                                             capabilities.maxImageExtent.height);
-
-            return actualExtent;
-        }
-    }
-
     std::vector<const char *> &VulkanHelper::getValidationLayers() {
         return validationLayers;
-    }
-
-    void VulkanHelper::createImageViews() {
-        swapChainImageViews.resize(swapChainImages.size());
-
-        for (size_t i = 0; i < swapChainImages.size(); i++) {
-            VkImageViewCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = swapChainImages[i];
-            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = swapChainImageFormat;
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount = 1;
-
-            if (vkCreateImageView(VulkanContext::device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create image views!");
-            }
-        }
-    }
-
-    void VulkanHelper::createFramebuffers() {
-        swapChainFramebuffers.resize(swapChainImageViews.size());
-
-        for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-            VkImageView attachments[] = {
-                    colorImageView,
-                    depthImageView,
-                    swapChainImageViews[i]
-            };
-
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = VulkanContext::renderPass.getRenderPass();
-            framebufferInfo.attachmentCount = 3;
-            framebufferInfo.pAttachments = attachments;
-            framebufferInfo.width = VulkanContext::swapChainExtent.width;
-            framebufferInfo.height = VulkanContext::swapChainExtent.height;
-            framebufferInfo.layers = 1;
-
-            if (vkCreateFramebuffer(VulkanContext::device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) !=
-                VK_SUCCESS) {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-        }
     }
 
     void VulkanHelper::createCommandPool() {
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        poolInfo.queueFamilyIndex = VulkanContext::indices.graphicsFamily.value();
 
         if (vkCreateCommandPool(VulkanContext::device, &poolInfo, nullptr, &VulkanContext::commandPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create command pool!");
@@ -405,50 +253,6 @@ namespace Engine {
         }
     }
 
-    void VulkanHelper::idle() {
-        vkDeviceWaitIdle(VulkanContext::device);
-    }
-
-    void VulkanHelper::recreateSwapChain() {
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(window, &width, &height);
-        while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(window, &width, &height);
-            glfwWaitEvents();
-        }
-
-        idle();
-
-        VulkanContext::swapChainExtent.width = width;
-        VulkanContext::swapChainExtent.height = height;
-
-        cleanupSwapChain();
-
-        createSwapChain();
-        createImageViews();
-        createColorResource();
-        createDepthResource();
-        createFramebuffers();
-    }
-
-    void VulkanHelper::cleanupSwapChain() {
-        for (auto &swapChainFramebuffer: swapChainFramebuffers) {
-            vkDestroyFramebuffer(VulkanContext::device, swapChainFramebuffer, nullptr);
-        }
-
-        for (auto &swapChainImageView: swapChainImageViews) {
-            vkDestroyImageView(VulkanContext::device, swapChainImageView, nullptr);
-        }
-
-        vkDestroyImageView(VulkanContext::device, depthImageView, nullptr);
-        vmaDestroyImage(VulkanContext::allocator, depthImage.image, depthImage.allocation);
-
-        vkDestroyImageView(VulkanContext::device, colorImageView, nullptr);
-        vmaDestroyImage(VulkanContext::allocator, colorImage.image, colorImage.allocation);
-
-        vkDestroySwapchainKHR(VulkanContext::device, swapChain, nullptr);
-    }
-
     void VulkanHelper::createDescriptorPool() {
         VkDescriptorPoolSize poolSize[] = {
                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 40}
@@ -469,12 +273,13 @@ namespace Engine {
     void VulkanHelper::syncNewFrame() {
         vkWaitForFences(VulkanContext::device, 1, &inFlightFences[VulkanContext::currentFrame], VK_TRUE, UINT64_MAX);
 
-        VkResult result = vkAcquireNextImageKHR(VulkanContext::device, swapChain, UINT64_MAX,
+        VkResult result = vkAcquireNextImageKHR(VulkanContext::device, VulkanContext::swapchain.getSwapChain(),
+                                                UINT64_MAX,
                                                 imageAvailableSemaphores[VulkanContext::currentFrame], VK_NULL_HANDLE,
                                                 &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            recreateSwapChain();
+            VulkanContext::swapchain.recreateSwapChain(window);
         } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
@@ -495,7 +300,7 @@ namespace Engine {
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = VulkanContext::renderPass.getRenderPass();
-        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.framebuffer = VulkanContext::swapchain.getFramebuffer(imageIndex);
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = VulkanContext::swapChainExtent;
 
@@ -548,7 +353,7 @@ namespace Engine {
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemaphores;
 
-        VkSwapchainKHR swapChains[] = {swapChain};
+        VkSwapchainKHR swapChains[] = {VulkanContext::swapchain.getSwapChain()};
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
 
@@ -558,108 +363,12 @@ namespace Engine {
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
             framebufferResized = false;
-            recreateSwapChain();
+            VulkanContext::swapchain.recreateSwapChain(window);
         } else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
         VulkanContext::currentFrame = (VulkanContext::currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    }
-
-    SwapChainSupportDetails VulkanHelper::querySwapChainSupport() {
-        SwapChainSupportDetails details;
-
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(VulkanContext::physicalDevice, VulkanContext::surface,
-                                                  &details.capabilities);
-
-        uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(VulkanContext::physicalDevice, VulkanContext::surface, &formatCount,
-                                             nullptr);
-
-        if (formatCount != 0) {
-            details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(VulkanContext::physicalDevice, VulkanContext::surface, &formatCount,
-                                                 details.formats.data());
-        }
-
-        uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(VulkanContext::physicalDevice, VulkanContext::surface,
-                                                  &presentModeCount, nullptr);
-
-        if (presentModeCount != 0) {
-            details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(VulkanContext::physicalDevice, VulkanContext::surface,
-                                                      &presentModeCount,
-                                                      details.presentModes.data());
-        }
-
-        return details;
-    }
-
-    AllocatedImage
-    VulkanHelper::createImage(unsigned int w, unsigned int h, VkFormat format, VkImageTiling tiling,
-                              VkImageUsageFlags usageBits,
-                              VkSampleCountFlagBits sampleBits,
-                              VmaMemoryUsage memoryUsage) {
-
-        AllocatedImage img{};
-
-        VkImageCreateInfo imageInfo{};
-        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width = w;
-        imageInfo.extent.height = h;
-        imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = 1;
-        imageInfo.arrayLayers = 1;
-        imageInfo.format = format;
-        imageInfo.tiling = tiling;
-        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageInfo.usage = usageBits;
-        imageInfo.samples = sampleBits;
-        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        VmaAllocationCreateInfo allocationInfo = {};
-        allocationInfo.usage = memoryUsage;
-
-        if (vmaCreateImage(VulkanContext::allocator, &imageInfo, &allocationInfo, &img.image, &img.allocation,
-                           nullptr) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to create image!");
-        }
-
-        return img;
-    }
-
-    void VulkanHelper::createColorResource() {
-        VkFormat colorFormat = swapChainImageFormat;
-
-        colorImage = createImage(VulkanContext::swapChainExtent.width, VulkanContext::swapChainExtent.height,
-                                 colorFormat, VK_IMAGE_TILING_OPTIMAL,
-                                 VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                 VulkanContext::msaaSamples, VMA_MEMORY_USAGE_AUTO);
-        colorImageView = createImageView(colorImage.image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-    }
-
-    VkImageView VulkanHelper::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags,
-                                              uint32_t mipLevels) {
-        VkImageViewCreateInfo viewInfo{};
-        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image = image;
-        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.format = format;
-        viewInfo.subresourceRange.aspectMask = aspectFlags;
-        viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = mipLevels;
-        viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = 1;
-
-        VkImageView imageView;
-        if (vkCreateImageView(VulkanContext::device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture image view!");
-        }
-
-        return imageView;
     }
 
     VkSampleCountFlagBits VulkanHelper::getMaxUsableSampleCount() {
@@ -676,15 +385,6 @@ namespace Engine {
         if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
 
         return VK_SAMPLE_COUNT_1_BIT;
-    }
-
-    void VulkanHelper::createDepthResource() {
-        depthImage = createImage(VulkanContext::swapChainExtent.width, VulkanContext::swapChainExtent.height,
-                                 VK_FORMAT_D32_SFLOAT,
-                                 VK_IMAGE_TILING_OPTIMAL,
-                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VulkanContext::msaaSamples,
-                                 VMA_MEMORY_USAGE_GPU_ONLY);
-        depthImageView = createImageView(depthImage.image, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     }
 
     void VulkanHelper::createPipelineCache() {

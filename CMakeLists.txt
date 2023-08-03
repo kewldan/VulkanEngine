@@ -13,6 +13,7 @@ find_package(Bullet CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(meshoptimizer CONFIG REQUIRED)
+find_package(base64 CONFIG REQUIRED)
 
 find_package(Vulkan)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
@@ -36,5 +37,5 @@ add_executable(VulkanEngine ${PROJECT_SRCS} ${ENGINE_SRCS})
 set_property(TARGET VulkanEngine PROPERTY
         MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-target_link_libraries(VulkanEngine PRIVATE glfw plog::plog ZLIB::ZLIB GPUOpen::VulkanMemoryAllocator glm::glm imgui::imgui Vulkan::Headers Vulkan::Vulkan ${BULLET_LIBRARIES} meshoptimizer::meshoptimizer)
+target_link_libraries(VulkanEngine PRIVATE glfw plog::plog ZLIB::ZLIB GPUOpen::VulkanMemoryAllocator glm::glm imgui::imgui Vulkan::Headers Vulkan::Vulkan ${BULLET_LIBRARIES} meshoptimizer::meshoptimizer aklomp::base64)
 target_include_directories(VulkanEngine PRIVATE ${Stb_INCLUDE_DIR})

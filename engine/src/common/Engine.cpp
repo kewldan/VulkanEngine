@@ -59,7 +59,7 @@ namespace Engine {
                 if (smphSignalMainToThread.try_acquire_for(std::chrono::milliseconds(100))) {
                     data.gpuWait = time() - t;
                     t = time();
-                    int currentFrame = vkHandler.syncNewFrame();
+                    vkHandler.syncNewFrame();
 
                     application.render(VulkanContext::commandBuffers.getCommandBuffer());
 

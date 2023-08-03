@@ -5,6 +5,7 @@
 #include <functional>
 #include "misc/Destroyable.h"
 #include "common/GameObject.h"
+#include "RenderPipelineLayout.h"
 
 namespace Engine {
     class RenderPipeline : public Destroyable {
@@ -12,6 +13,7 @@ namespace Engine {
         VkPipeline pipeline = VK_NULL_HANDLE;
     public:
         std::function<void(const GameObject &)> renderFunction;
+        const std::vector<VkDescriptorSet> *descriptorSets;
 
         virtual void init(const std::function<void(const GameObject &)> &func);
 
@@ -36,7 +38,7 @@ namespace Engine {
 
         virtual void updateViewportScissor();
 
-        virtual void build(VkPipelineLayout layout) = 0;
+        virtual void build(const RenderPipelineLayout &layout);
 
         [[nodiscard]] virtual VkPipeline getPipeline() const;
 

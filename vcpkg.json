@@ -36,5 +36,8 @@
   }, {
     "name" : "meshoptimizer",
     "version>=" : "0.18#1"
+  }, {
+    "name" : "aklomp-base64",
+    "version>=" : "2023-01-06#1"
   } ]
 }

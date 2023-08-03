@@ -129,7 +129,7 @@ namespace Engine {
 
         [[nodiscard]] std::vector<const char *> &getValidationLayers();
 
-        int syncNewFrame();
+        void syncNewFrame();
 
         void endFrame();
 

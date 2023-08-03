@@ -458,7 +458,7 @@ namespace Engine {
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = sizeof(poolSize) / sizeof(*poolSize);
         poolInfo.pPoolSizes = poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(40);
+        poolInfo.maxSets = 40;
 
         if (vkCreateDescriptorPool(VulkanContext::device, &poolInfo, nullptr, &VulkanContext::descriptorPool) !=
             VK_SUCCESS) {
@@ -466,7 +466,7 @@ namespace Engine {
         }
     }
 
-    int VulkanHelper::syncNewFrame() {
+    void VulkanHelper::syncNewFrame() {
         vkWaitForFences(VulkanContext::device, 1, &inFlightFences[VulkanContext::currentFrame], VK_TRUE, UINT64_MAX);
 
         VkResult result = vkAcquireNextImageKHR(VulkanContext::device, swapChain, UINT64_MAX,
@@ -510,8 +510,6 @@ namespace Engine {
 
         vkCmdBeginRenderPass(VulkanContext::commandBuffers.getCommandBuffer(), &renderPassInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
-
-        return VulkanContext::currentFrame;
     }
 
     void VulkanHelper::endFrame() {

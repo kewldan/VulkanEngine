@@ -7,8 +7,8 @@ namespace Engine {
     void RenderPipelineLayout::build() {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = sets.size();
-        pipelineLayoutInfo.pSetLayouts = sets.data();
+        pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
+        pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
         pipelineLayoutInfo.pPushConstantRanges = ranges.data();
         pipelineLayoutInfo.pushConstantRangeCount = ranges.size();
 
@@ -23,11 +23,15 @@ namespace Engine {
     }
 
     void RenderPipelineLayout::destroy() {
-        
-        for (VkDescriptorSetLayout set: sets) {
+
+        for (VkDescriptorSetLayout set: descriptorSetLayouts) {
             vkDestroyDescriptorSetLayout(Engine::VulkanContext::device, set, nullptr);
         }
 
         vkDestroyPipelineLayout(Engine::VulkanContext::device, layout, nullptr);
+    }
+
+    const std::vector<VkDescriptorSet> *RenderPipelineLayout::getDescriptorSets() const {
+        return descriptorSets;
     }
 } // Engine

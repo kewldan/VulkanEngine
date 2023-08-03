@@ -28,7 +28,7 @@ void Game::init() {
     camera.rotation = glm::vec3(0.6f, -0.8f, 0.f);
 
     pipelineLayout.build();
-    graphicsPipeline.build(pipelineLayout.getLayout());
+    graphicsPipeline.build(pipelineLayout);
 
     graphicsPipeline.init([this](const Engine::GameObject &object) {
         uniformModel.color = object.color;
@@ -43,13 +43,12 @@ void Game::init() {
                                  object.meshes[i].indexBuffer.buffer, 0,
                                  VK_INDEX_TYPE_UINT16);
 
-            VkDescriptorSet sets[] = {
-                    uniformCamera.getDescriptorSet()
-            };
             vkCmdBindDescriptorSets(Engine::VulkanContext::commandBuffers.getCommandBuffer(),
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipelineLayout.getLayout(), 0, 1,
-                                    sets, 0, nullptr);
+                                    pipelineLayout.getLayout(), 0,
+                                    graphicsPipeline.descriptorSets[Engine::VulkanContext::currentFrame].size(),
+                                    graphicsPipeline.descriptorSets[Engine::VulkanContext::currentFrame].data(), 0,
+                                    nullptr);
             vkCmdDrawIndexed(Engine::VulkanContext::commandBuffers.getCommandBuffer(),
                              object.meshes[i].indexCount, 1, 0, 0, 0);
         }

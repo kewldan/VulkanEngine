@@ -13,7 +13,7 @@ public:
 
     LitPipeline();
 
-    void build(VkPipelineLayout layout) override;
+    void build(const Engine::RenderPipelineLayout &layout) override;
 
     void load();
 };

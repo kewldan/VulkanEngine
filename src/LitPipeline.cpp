@@ -3,7 +3,9 @@
 #include "graphics/VulkanContext.h"
 #include "io/AssetLoader.h"
 
-void LitPipeline::build(VkPipelineLayout layout) {
+void LitPipeline::build(const Engine::RenderPipelineLayout &layout) {
+    Engine::RenderPipeline::build(layout);
+
     auto vertexInputStage = getVertexInputState();
     auto multisampler = getMultisampling(Engine::VulkanContext::msaaSamples);
     auto colorBlending = getColorBlending();
@@ -24,7 +26,7 @@ void LitPipeline::build(VkPipelineLayout layout) {
     pipelineInfo.pColorBlendState = colorBlending;
     pipelineInfo.pDepthStencilState = &depthState;
     pipelineInfo.pDynamicState = &dynamicStates;
-    pipelineInfo.layout = layout;
+    pipelineInfo.layout = layout.getLayout();
     pipelineInfo.renderPass = Engine::VulkanContext::renderPass.getRenderPass();
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;

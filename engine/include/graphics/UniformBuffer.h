@@ -50,7 +50,7 @@ namespace Engine {
 
         void upload();
 
-        VkDescriptorSet getDescriptorSet();
+        VkDescriptorSet getDescriptorSet(size_t currentFrame = -1);
 
         [[nodiscard]] VkDescriptorSetLayout getLayout() const {
             return layout;
@@ -66,8 +66,11 @@ namespace Engine {
     };
 
     template<typename T>
-    VkDescriptorSet UniformBuffer<T>::getDescriptorSet() {
-        return descriptorSets[VulkanContext::currentFrame];
+    VkDescriptorSet UniformBuffer<T>::getDescriptorSet(size_t currentFrame) {
+        if (currentFrame == -1) {
+            currentFrame = VulkanContext::currentFrame;
+        }
+        return descriptorSets[currentFrame];
     }
 
     template<class T>

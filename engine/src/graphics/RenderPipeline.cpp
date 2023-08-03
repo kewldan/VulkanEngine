@@ -165,4 +165,8 @@ namespace Engine {
         scissor.extent = Engine::VulkanContext::swapChainExtent;
         vkCmdSetScissor(VulkanContext::commandBuffers.getCommandBuffer(), 0, 1, &scissor);
     }
+
+    void RenderPipeline::build(const RenderPipelineLayout &layout) {
+        descriptorSets = layout.getDescriptorSets();
+    }
 }

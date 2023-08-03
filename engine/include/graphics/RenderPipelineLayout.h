@@ -11,7 +11,8 @@ namespace Engine {
     class RenderPipelineLayout : public Destroyable {
     private:
         std::vector<VkPushConstantRange> ranges;
-        std::vector<VkDescriptorSetLayout> sets;
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+        std::vector<VkDescriptorSet> descriptorSets[MAX_FRAMES_IN_FLIGHT];
         VkPipelineLayout layout;
     public:
 
@@ -26,6 +27,8 @@ namespace Engine {
         [[nodiscard]] VkPipelineLayout getLayout() const;
 
         void destroy() override;
+
+        const std::vector<VkDescriptorSet> *getDescriptorSets() const;
     };
 
     template<typename T>
@@ -42,7 +45,10 @@ namespace Engine {
         UniformBuffer<T> buffer;
 
         buffer.init(stageFlags, binding);
-        sets.push_back(buffer.getLayout());
+        descriptorSetLayouts.push_back(buffer.getLayout());
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            descriptorSets[i].push_back(buffer.getDescriptorSet(i));
+        }
 
         return buffer;
     }

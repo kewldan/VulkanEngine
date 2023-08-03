@@ -27,7 +27,6 @@ namespace Engine {
 
         GameObject *instantiate();
 
-        GameObject *instantiate(const char *filename, float mass = 0.f, btCollisionShape *shape = nullptr,
-                                btVector3 position = btVector3(0.f, 0.f, 0.f));
+        GameObject *instantiate(const char *filename, float mass = 0.f);
     };
 }

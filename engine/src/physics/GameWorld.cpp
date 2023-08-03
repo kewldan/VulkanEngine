@@ -39,10 +39,10 @@ namespace Engine {
         return gameObject;
     }
 
-    GameObject *GameWorld::instantiate(const char *filename, float mass, btCollisionShape *shape, btVector3 position) {
+    GameObject *GameWorld::instantiate(const char *filename, float mass) {
         assert(filename != nullptr);
 
-        auto *gameObject = new GameObject(filename, mass, shape, position);
+        auto *gameObject = new GameObject(filename, mass);
 
         gameObjects.push_back(gameObject);
 

@@ -2,12 +2,6 @@
 #include "OBJ_Loader.h"
 
 namespace Engine {
-    void GameObject::upload() const {
-        for (int i = 0; i < meshCount; i++) {
-            meshes[i].upload();
-        }
-    }
-
     void GameObject::destroy() {
         for (int i = 0; i < meshCount; i++) {
             meshes[i].destroy();
@@ -37,32 +31,21 @@ namespace Engine {
                     indices[k] = curMesh.Indices[k];
                 }
                 meshes[i] = Mesh(vertices, indices, curMesh.Indices.size(), curMesh.Vertices.size());
+                meshes[i].upload();
                 i++;
             }
         }
-        upload();
     }
 
-    GameObject::GameObject(const char *filename, float mass, btCollisionShape *shape, btVector3 position) : filename(
-            filename), collisionShape(shape) {
-        btTransform transform;
-        transform.setIdentity();
-
-        if (collisionShape && mass > 0.f) {
-            collisionShape->calculateLocalInertia(mass, localInertia);
-        }
-
-        transform.setOrigin(position);
-
-        motionState = new btDefaultMotionState(transform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, motionState, collisionShape, localInertia);
+    GameObject::GameObject(const char *filename, float mass) : filename(
+            filename) {
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, new btDefaultMotionState(btTransform::getIdentity()),
+                                                        new btBoxShape(btVector3(1.f, 1.f, 1.f)));
         rb = new btRigidBody(rbInfo);
     }
 
-    glm::mat4 GameObject::getModel() const {
-        glm::mat4 mvp;
-        rb->getWorldTransform().getOpenGLMatrix(reinterpret_cast<btScalar *>(&mvp));
-        return mvp;
+    void GameObject::getModel(glm::mat4 *mvp) const {
+        rb->getWorldTransform().getOpenGLMatrix(reinterpret_cast<btScalar *>(mvp));
     }
 
     GameObject::GameObject() = default;

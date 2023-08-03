@@ -169,13 +169,12 @@ namespace Engine {
 
     VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
         for (const auto &availableFormat: availableFormats) {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
-                availableFormat.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT) {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM) {
                 return availableFormat;
             }
         }
 
-        PLOGW << "Swap surface format \"VK_FORMAT_B8G8R8A8_SRGB & VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT\" is not supported, using 1st available";
+        PLOGW << "Swap surface format \"VK_FORMAT_B8G8R8A8_UNORM\" is not supported, using 1st available";
 
         return availableFormats[0];
     }
